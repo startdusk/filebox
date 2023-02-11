@@ -2,7 +2,7 @@ use chrono::Local;
 use sqlx::PgPool;
 
 use crate::{
-    error::Error,
+    errors::Error,
     models::filebox::{AddFilebox, Filebox},
 };
 
@@ -19,7 +19,20 @@ pub async fn get_filebox_db(pool: &PgPool, code: String) -> Result<Filebox, Erro
     Ok(filebox)
 }
 
-// add_new_filebox_db 创建一个文件柜分享
+pub async fn delete_expired_filebox_db(pool: &PgPool) -> Result<(), Error> {
+    let now = Local::now().naive_local();
+    let _ = sqlx::query(
+        r#"
+		DELETE FROM filebox WHERE expired_at < $1 OR used_at IS NOT NULL
+	"#,
+    )
+    .bind(now)
+    .execute(pool)
+    .await?;
+
+    Ok(())
+}
+
 pub async fn add_new_filebox_db(pool: &PgPool, filebox: AddFilebox) -> Result<Filebox, Error> {
     let file_type: String = filebox.file_type.into();
     let new_filebox: Filebox = sqlx::query_as(
@@ -97,15 +110,19 @@ mod tests {
 
         // 2.get the filebox
         let get_filebox = get_filebox_db(&pool, code.clone()).await.unwrap();
-        dbg!(&get_filebox);
         assert_eq!(new_filebox, get_filebox);
 
         // 3.update the filebox set used
         update_filebox_db(&pool, code.clone()).await.unwrap();
 
         let get_update_filebox = get_filebox_db(&pool, code.clone()).await.unwrap();
-        dbg!(&get_update_filebox);
-        assert!(get_update_filebox.has_taken())
+        assert!(get_update_filebox.has_taken());
+
+        // 4.delete the used filebox
+        delete_expired_filebox_db(&pool).await.unwrap();
+
+        let resp = get_filebox_db(&pool, code.clone()).await;
+        assert!(resp.is_err());
     }
 
     // private none test functions

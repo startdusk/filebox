@@ -3,6 +3,7 @@ use std::{io, sync::Mutex};
 
 use actix_web::{web, App, HttpServer};
 use server::routers::{filebox_routes, general_routes};
+use server::scheduler::start_clean_expired_filebox;
 use server::state::AppState;
 use sqlx::postgres::PgPoolOptions;
 
@@ -17,8 +18,11 @@ async fn main() -> io::Result<()> {
         health_check_response: "I'm OK.".to_string(),
         visit_count: Mutex::new(0),
         upload_path,
-        db: db_pool,
+        db: db_pool.clone(),
     });
+
+    // Start scheduler on a new thread
+    actix_rt::spawn(async move { start_clean_expired_filebox(&db_pool.clone()).await });
 
     let app = move || {
         App::new()
