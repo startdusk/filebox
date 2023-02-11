@@ -1,6 +1,7 @@
 use std::env;
 use std::{io, sync::Mutex};
 
+use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpServer};
 use server::routers::{filebox_routes, general_routes};
 use server::scheduler::start_clean_expired_filebox;
@@ -10,6 +11,8 @@ use sqlx::postgres::PgPoolOptions;
 #[actix_rt::main]
 async fn main() -> io::Result<()> {
     dotenvy::dotenv().ok();
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL is required");
     let http_server_addr = env::var("HTTP_SERVER_ADDR").expect("HTTP_SERVER_ADDR is required");
     let upload_path = env::var("UPLOAD_FILE_PATH").expect("UPLOAD_FILE_PATH is required");
@@ -29,8 +32,9 @@ async fn main() -> io::Result<()> {
             .app_data(shared_data.clone())
             .configure(general_routes)
             .configure(filebox_routes)
+            .wrap(Logger::default())
     };
 
-    println!("filebox server run on: {http_server_addr}");
+    log::info!("Filebox server run on: {http_server_addr}");
     HttpServer::new(app).bind(http_server_addr)?.run().await
 }

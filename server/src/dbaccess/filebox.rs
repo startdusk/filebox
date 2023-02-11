@@ -43,10 +43,11 @@ pub async fn add_new_filebox_db(pool: &PgPool, filebox: AddFilebox) -> Result<Fi
 				size,
 				file_type,
 				text,
+                file_path,
 				created_at,
 				expired_at
 			) VALUES (
-				$1, $2, $3, $4::file_type, $5, $6, $7
+				$1, $2, $3, $4::file_type, $5, $6, $7, $8
 			) RETURNING *
 		"#,
     )
@@ -55,6 +56,7 @@ pub async fn add_new_filebox_db(pool: &PgPool, filebox: AddFilebox) -> Result<Fi
     .bind(filebox.size)
     .bind(file_type)
     .bind(filebox.text)
+    .bind(filebox.file_path)
     .bind(filebox.created_at)
     .bind(filebox.expired_at)
     .fetch_one(pool)
@@ -63,19 +65,19 @@ pub async fn add_new_filebox_db(pool: &PgPool, filebox: AddFilebox) -> Result<Fi
     Ok(new_filebox)
 }
 
-pub async fn update_filebox_db(pool: &PgPool, code: String) -> Result<(), Error> {
+pub async fn update_filebox_db(pool: &PgPool, code: String) -> Result<Filebox, Error> {
     let now = Local::now().naive_local();
-    let _ = sqlx::query(
+    let filebox: Filebox = sqlx::query_as(
         r#"
-		UPDATE filebox SET used_at = $1 WHERE code = $2
+		UPDATE filebox SET used_at = $1 WHERE code = $2 AND used_at IS NULL RETURNING *
 	"#,
     )
     .bind(now)
     .bind(code)
-    .execute(pool)
+    .fetch_one(pool)
     .await?;
 
-    Ok(())
+    Ok(filebox)
 }
 
 #[cfg(test)]
@@ -113,9 +115,8 @@ mod tests {
         assert_eq!(new_filebox, get_filebox);
 
         // 3.update the filebox set used
-        update_filebox_db(&pool, code.clone()).await.unwrap();
+        let get_update_filebox = update_filebox_db(&pool, code.clone()).await.unwrap();
 
-        let get_update_filebox = get_filebox_db(&pool, code.clone()).await.unwrap();
         assert!(get_update_filebox.has_taken());
 
         // 4.delete the used filebox

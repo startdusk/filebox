@@ -68,13 +68,22 @@ pub struct GetFileboxResponse {
     pub id: i64,
     pub code: String,
     pub name: String,
-    pub size: i64,
     pub file_type: FileboxFileType,
-    pub text: String,
-    pub file_path: String,
     pub created_at: i64,
     pub expired_at: i64,
     pub used_at: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TakeTextResponse {
+    pub id: i64,
+    pub code: String,
+    pub name: String,
+    pub file_type: FileboxFileType,
+    pub text: String,
+    pub created_at: i64,
+    pub expired_at: i64,
+    pub used_at: i64,
 }
 
 /// CreateFileboxResp 返回创建文件柜信息
@@ -157,13 +166,25 @@ impl From<Filebox> for GetFileboxResponse {
             id: v.id,
             code: v.code,
             name: v.name,
-            size: v.size,
-            file_path: v.file_path,
-            text: v.text,
             file_type: v.file_type.into(),
             created_at: v.created_at.timestamp(),
             expired_at: v.expired_at.timestamp(),
             used_at: v.used_at.map(|used_at| used_at.timestamp()),
+        }
+    }
+}
+
+impl From<Filebox> for TakeTextResponse {
+    fn from(v: Filebox) -> Self {
+        Self {
+            id: v.id,
+            code: v.code,
+            name: v.name,
+            text: v.text,
+            file_type: v.file_type.into(),
+            created_at: v.created_at.timestamp(),
+            expired_at: v.expired_at.timestamp(),
+            used_at: v.used_at.unwrap().timestamp(),
         }
     }
 }
