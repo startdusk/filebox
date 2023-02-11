@@ -1,17 +1,65 @@
+use actix_easy_multipart::{tempfile::Tempfile, text::Text, MultipartForm};
 use serde::{
     de::{self, Unexpected},
     Deserialize, Serialize,
 };
-use validator::Validate;
+use validator::{Validate, ValidationError, ValidationErrors};
 
 use crate::models::filebox::{FileType, Filebox};
 
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, MultipartForm)]
 pub struct CreateFileboxRequest {
-    pub name: String,
-    pub text: Option<String>,
-    pub durations_day: u8,
-    pub file_type: FileboxFileType,
+    pub name: Text<String>,
+    pub text: Option<Text<String>>,
+    pub duration_day: Text<u8>,
+    pub file_type: Text<FileboxFileType>,
+    pub file: Option<Tempfile>,
+}
+
+impl Validate for CreateFileboxRequest {
+    fn validate(&self) -> Result<(), validator::ValidationErrors> {
+        let mut errors = ValidationErrors::new();
+
+        if self.name.len() > 50 {
+            errors.add("name", ValidationError::new("name more than 50 characters"));
+        }
+
+        if *self.duration_day == 0 || *self.duration_day >= 30 {
+            errors.add(
+                "duration_day",
+                ValidationError::new("duration_day over scope"),
+            );
+        }
+
+        match *self.file_type {
+            FileboxFileType::Text => {
+                if let Some(text) = &self.text {
+                    if text.len() == 0 || text.len() > 2000 {
+                        errors.add("text", ValidationError::new("text over scope"));
+                    }
+                } else {
+                    errors.add("text", ValidationError::new("text empty"));
+                }
+
+                if !errors.is_empty() {
+                    return Err(errors);
+                }
+
+                Ok(())
+            }
+            FileboxFileType::File => {
+                if self.file.is_none() {
+                    errors.add("file", ValidationError::new("file empty"));
+                };
+
+                if !errors.is_empty() {
+                    return Err(errors);
+                }
+
+                Ok(())
+            }
+        }
+    }
 }
 
 /// GetFileboxResp 获取文件柜信息

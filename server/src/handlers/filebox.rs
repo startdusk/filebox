@@ -1,10 +1,9 @@
-use std::io::Write;
+use std::fs;
 use std::ops::Add;
 
-use actix_multipart::Multipart;
+use actix_easy_multipart::MultipartForm;
 use actix_web::{web, HttpResponse};
 use chrono::{Duration, Local};
-use futures::{StreamExt, TryStreamExt};
 use uuid::Uuid;
 use validator::Validate;
 
@@ -29,55 +28,41 @@ pub async fn get_filebox_by_code(
 
 pub async fn add_new_filebox(
     app_state: web::Data<AppState>,
-    req: web::Json<CreateFileboxRequest>,
-    mut payload: Multipart,
+    form: MultipartForm<CreateFileboxRequest>,
 ) -> Result<HttpResponse, Error> {
-    req.validate()?;
-
     // TODO: 生成5位数的提取码
     let code = "12345".to_string();
-    let now = Local::now().naive_local();
 
-    let name = req.name.clone();
-    let day = req.durations_day as i64;
-    let new_filebox = match req.file_type {
+    let now = Local::now().naive_local();
+    let form = form.into_inner(); // need to take mutable ownership of the form
+    form.validate()?;
+    let day = *form.duration_day as i64;
+    let name = &*form.name;
+
+    let file_type = *form.file_type;
+    let new_filebox = match file_type {
         FileboxFileType::Text => {
-            let text = req.text.clone().unwrap();
+            let text = &*form.text.unwrap();
             AddFilebox {
                 code,
-                name,
+                name: name.clone(),
                 file_type: FileType::Text,
-                text,
+                text: text.clone(),
                 created_at: now,
                 expired_at: now.add(Duration::days(day)),
                 ..Default::default()
             }
         }
         FileboxFileType::File => {
-            // iterate over multipart stream
-            while let Ok(Some(mut field)) = payload.try_next().await {
-                let content_type = field.content_disposition();
-                let filename = content_type.get_filename().unwrap();
-                let filepath = format!("./store/{}{}", Uuid::new_v4(), filename);
+            let prefix = format!("{}/{}", app_state.upload_path, Uuid::new_v4());
+            fs::create_dir_all(prefix.clone())?;
 
-                // File::create is blocking operation, use threadpool
-                let f = web::block(|| std::fs::File::create(filepath))
-                    .await
-                    .unwrap();
-                let mut f = f.unwrap();
-                // Field in turn is stream of *Bytes* object
-                while let Some(chunk) = field.next().await {
-                    let data = chunk.unwrap();
-                    // filesystem operations are blocking, we have to use threadpool
-                    f = web::block(move || f.write_all(&data).map(|_| f))
-                        .await
-                        .unwrap()
-                        .unwrap();
-                }
-            }
+            let upload_file = form.file.unwrap();
+            let store_filepath = format!("{}/{}", prefix, upload_file.file_name.unwrap(),);
+            upload_file.file.persist(store_filepath).unwrap();
             AddFilebox {
                 code,
-                name,
+                name: name.clone(),
                 file_type: FileType::File,
                 created_at: now,
                 expired_at: now.add(Duration::days(day)),

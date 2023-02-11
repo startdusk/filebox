@@ -1,3 +1,5 @@
+use std::io;
+
 use actix_web::{http::StatusCode, HttpResponse, ResponseError};
 use serde::Serialize;
 use validator::ValidationErrors;
@@ -16,6 +18,15 @@ pub enum Error {
     #[error("Input validate error")]
     InputValidateError(#[from] ValidationErrors),
 
+    #[error("Upload file error")]
+    MultipartError(#[from] actix_easy_multipart::Error),
+
+    #[error("IO error")]
+    IOError(#[from] io::Error),
+
+    #[error("Validate error: {0}")]
+    ValidateArgsError(String),
+
     #[error("No file box found by the given condition")]
     NotFound,
 
@@ -27,11 +38,15 @@ impl Error {
     fn error_response(&self) -> String {
         match self {
             Error::InvalidCode(msg) => msg.to_string(),
-            Error::InputValidateError(_) => "input validate".to_string(),
+            Error::ValidateArgsError(_) | Error::InputValidateError(_) => {
+                "input validate error".to_string()
+            }
             Error::NotFound => "not found".to_string(),
-            Error::DbError(_) => "internal server error".to_string(),
-            Error::InvalidFileType(_) => "internal server error".to_string(),
-            Error::Unknown => "internal server error".to_string(),
+            Error::IOError(_)
+            | Error::MultipartError(_)
+            | Error::DbError(_)
+            | Error::InvalidFileType(_)
+            | Error::Unknown => "internal server error".to_string(),
         }
     }
 }
@@ -56,12 +71,15 @@ pub struct ErrorResponse {
 impl ResponseError for Error {
     fn status_code(&self) -> actix_web::http::StatusCode {
         match self {
-            Error::InvalidCode(_) | Error::InvalidFileType(_) | Error::InputValidateError(_) => {
-                StatusCode::BAD_REQUEST
-            }
+            Error::ValidateArgsError(_)
+            | Error::InvalidCode(_)
+            | Error::InvalidFileType(_)
+            | Error::InputValidateError(_) => StatusCode::BAD_REQUEST,
             Error::NotFound => StatusCode::NOT_FOUND,
 
-            Error::DbError(_) | Error::Unknown => StatusCode::INTERNAL_SERVER_ERROR,
+            Error::IOError(_) | Error::DbError(_) | Error::Unknown | Error::MultipartError(_) => {
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
         }
     }
 
