@@ -1,6 +1,6 @@
 use crate::handlers::{
     filebox::{add_new_filebox, get_filebox_by_code, take_filebox_by_code},
-    general::*,
+    general::health_check_handler,
 };
 
 use actix_web::web;

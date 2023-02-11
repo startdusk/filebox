@@ -26,6 +26,9 @@ pub async fn get_filebox_by_code(
     let code = code.into_inner();
 
     let filebox = get_filebox_db(&app_state.db, code).await?;
+    if filebox.has_taken() {
+        return Ok(HttpResponse::BadRequest().body("file box has taken"));
+    }
     let resp: GetFileboxResponse = filebox.into();
     Ok(HttpResponse::Ok().json(resp))
 }
@@ -102,7 +105,7 @@ pub async fn take_filebox_by_code(
                 .unwrap()
                 .to_str()
                 .unwrap();
-            log::debug!("{}", file_name);
+
             let file_path = format!("{}/{}", app_state.upload_path, filebox.file_path);
             let file_stream = NamedFile::open_async(file_path).await?;
             let resp = file_stream
