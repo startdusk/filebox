@@ -37,8 +37,9 @@ pub async fn add_new_filebox(
     app_state: web::Data<AppState>,
     form: MultipartForm<CreateFileboxRequest>,
 ) -> Result<HttpResponse, Error> {
-    // TODO: 生成提取码
-    let code = "54321".to_string();
+    let code_gen = app_state.code_gen.lock().unwrap();
+    let code = code_gen.borrow_mut().next_string();
+    dbg!(code.clone());
 
     let now = Local::now().naive_local();
     let form = form.into_inner(); // need to take mutable ownership of the form

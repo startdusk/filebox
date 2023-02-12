@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::env;
 use std::{io, sync::Mutex};
 
@@ -8,6 +9,7 @@ use server::routers::{filebox_routes, general_routes};
 use server::scheduler::start_clean_expired_filebox;
 use server::state::AppState;
 use sqlx::postgres::PgPoolOptions;
+use tiny_id::ShortCodeGenerator;
 
 #[actix_rt::main]
 async fn main() -> io::Result<()> {
@@ -18,11 +20,20 @@ async fn main() -> io::Result<()> {
     let http_server_addr = env::var("HTTP_SERVER_ADDR").expect("HTTP_SERVER_ADDR is required");
     let upload_path = env::var("UPLOAD_FILE_PATH").expect("UPLOAD_FILE_PATH is required");
     let db_pool = PgPoolOptions::new().connect(&database_url).await.unwrap();
+
+    // The length of generated codes
+    let length: usize = 5;
+
+    // Create a generator. The generator must be mutable, because each
+    // code generated updates its state.
+    let generator = ShortCodeGenerator::new_lowercase_alphanumeric(length);
+
     let shared_data = web::Data::new(AppState {
         health_check_response: "I'm OK.".to_string(),
         visit_count: Mutex::new(0),
         upload_path,
         db: db_pool.clone(),
+        code_gen: Mutex::new(RefCell::new(generator)),
     });
 
     // Start scheduler on a new thread
