@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import styles from "./Header.module.css";
 import { Route, ConstantSource } from "../../constant";
 
@@ -12,7 +12,9 @@ export const Header: React.FC<PropsType> = ({ title }) => {
     <div className={styles.container}>
       <button
         className={styles.button}
-        onClick={() => navigate(Route.homePath)}
+        onClick={() => {
+          navigate(Route.homePath);
+        }}
       >
         首页
       </button>

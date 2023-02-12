@@ -1,8 +1,9 @@
 use std::env;
 use std::{io, sync::Mutex};
 
+use actix_cors::Cors;
 use actix_web::middleware::Logger;
-use actix_web::{web, App, HttpServer};
+use actix_web::{http, web, App, HttpServer};
 use server::routers::{filebox_routes, general_routes};
 use server::scheduler::start_clean_expired_filebox;
 use server::state::AppState;
@@ -28,10 +29,23 @@ async fn main() -> io::Result<()> {
     actix_rt::spawn(async move { start_clean_expired_filebox(&db_pool.clone()).await });
 
     let app = move || {
+        let cors = Cors::default()
+            .allowed_origin("http://localhost:5173")
+            .allowed_origin("http://127.0.0.1:5173")
+            .allowed_origin_fn(|origin, _req_head| {
+                origin.as_bytes().starts_with(b"http://localhost")
+            })
+            .allowed_methods(vec!["GET", "POST"])
+            .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+            .allowed_header(http::header::CONTENT_TYPE)
+            .supports_credentials()
+            .max_age(3600);
+
         App::new()
             .app_data(shared_data.clone())
             .configure(general_routes)
             .configure(filebox_routes)
+            .wrap(cors)
             .wrap(Logger::default())
     };
 
