@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import styles from "./HomePage.module.css";
-import { RouteUtils } from "../../router";
+import { Route } from "../../constant";
 
 interface HomePageProps {}
 
@@ -12,13 +12,13 @@ export const HomePage: React.FC<HomePageProps> = () => {
       <div className={styles.content}>
         <div
           className={styles.button}
-          onClick={() => navigate(RouteUtils.pickupPath)}
+          onClick={() => navigate(Route.pickupPath)}
         >
           取件
         </div>
         <div
           className={styles.button}
-          onClick={() => navigate(RouteUtils.storePath)}
+          onClick={() => navigate(Route.storePath)}
         >
           寄件
         </div>

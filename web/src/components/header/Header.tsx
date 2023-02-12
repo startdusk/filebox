@@ -1,6 +1,6 @@
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import styles from "./Header.module.css";
-import { RouteUtils } from "../../router";
+import { Route, ConstantSource } from "../../constant";
 
 interface PropsType {
   title: string;
@@ -12,12 +12,19 @@ export const Header: React.FC<PropsType> = ({ title }) => {
     <div className={styles.container}>
       <button
         className={styles.button}
-        onClick={() => navigate(RouteUtils.homePath)}
+        onClick={() => navigate(Route.homePath)}
       >
         首页
       </button>
       <h1 className={styles.title}>{title}</h1>
-      <button className={styles.button}>github</button>
+      <button
+        className={styles.button}
+        onClick={() => {
+          window.open(ConstantSource.myGithubRepo);
+        }}
+      >
+        github
+      </button>
     </div>
   );
 };

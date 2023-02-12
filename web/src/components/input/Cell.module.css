@@ -1,0 +1,41 @@
+.cell {
+  width: 160px;
+  height: 160px;
+  display: inline-block;
+  line-height: 160px;
+  margin: 4px;
+  font-size: 100px;
+  font-weight: bold;
+  perspective: 1000px;
+}
+
+.box {
+  border: 2px solid #444;
+  backface-visibility: hidden;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.cell.filled {
+  animation-name: press;
+  animation-duration: 100ms;
+  animation-timing-function: ease-out;
+}
+
+@keyframes press {
+  from {
+    opacity: 0.5;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.1);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
