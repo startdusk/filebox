@@ -85,10 +85,10 @@ mod tests {
     use super::*;
     use crate::models::filebox::FileType;
 
-    use std::{ops::Add, path::Path};
+    use std::ops::Add;
 
+    use crate::test_utils::get_tdb;
     use chrono::{Duration, Local};
-    use sqlx_db_tester::TestPg;
 
     #[actix_rt::test]
     async fn filebox_lifecycle() {
@@ -100,15 +100,26 @@ mod tests {
         let now = Local::now().naive_local();
         let filebox = AddFilebox {
             code: code.clone(),
-            name: "test.zip".to_string(),
-            size: 123,
-            file_type: FileType::File,
-            file_path: "..///sdfsa".to_string(),
+            name: "test".to_string(),
+            file_type: FileType::Text,
             text: "21123".to_string(),
             created_at: now,
             expired_at: now.add(Duration::days(7)),
+            ..Default::default()
         };
-        let new_filebox = add_new_filebox_db(&pool, filebox).await.unwrap();
+        let new_filebox = add_new_filebox_db(&pool, filebox.clone()).await.unwrap();
+        assert_eq!(filebox.code, new_filebox.code);
+        assert_eq!(filebox.name, new_filebox.name);
+        assert_eq!(filebox.file_type, new_filebox.file_type);
+        assert_eq!(filebox.text, new_filebox.text);
+        assert_eq!(
+            filebox.created_at.timestamp(),
+            new_filebox.created_at.timestamp()
+        );
+        assert_eq!(
+            filebox.expired_at.timestamp(),
+            new_filebox.expired_at.timestamp()
+        );
 
         // 2.get the filebox
         let get_filebox = get_filebox_db(&pool, code.clone()).await.unwrap();
@@ -124,13 +135,5 @@ mod tests {
 
         let resp = get_filebox_db(&pool, code.clone()).await;
         assert!(resp.is_err());
-    }
-
-    // private none test functions
-    fn get_tdb() -> TestPg {
-        dotenvy::from_filename(".env.test").ok();
-        let server_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-        let migrations = Path::new("../migrations");
-        TestPg::new(server_url, migrations)
     }
 }

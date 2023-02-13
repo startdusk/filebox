@@ -1,6 +1,6 @@
 use sqlx::types::chrono::NaiveDateTime;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct AddFilebox {
     pub code: String,
     pub name: String,

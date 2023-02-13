@@ -25,5 +25,5 @@ fmt:
 
 .PHONY: run
 run:
-	@cargo run -p server --bin filebox-server
+	@cargo run --bin filebox-server
 

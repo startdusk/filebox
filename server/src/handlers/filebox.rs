@@ -37,17 +37,19 @@ pub async fn add_new_filebox(
     app_state: web::Data<AppState>,
     form: MultipartForm<CreateFileboxRequest>,
 ) -> Result<HttpResponse, Error> {
-    let code_gen = app_state.code_gen.lock().unwrap();
+    dbg!("testing");
+    let code_gen = app_state.code_gen.lock().await;
     let code = code_gen.borrow_mut().next_string();
     dbg!(code.clone());
 
-    let now = Local::now().naive_local();
     let form = form.into_inner(); // need to take mutable ownership of the form
     form.validate()?;
     let day = *form.duration_day as i64;
     let name = &*form.name;
 
     let file_type = *form.file_type;
+
+    let now = Local::now().naive_local();
     let new_filebox = match file_type {
         FileboxFileType::Text => {
             let text = &*form.text.unwrap();
@@ -62,19 +64,19 @@ pub async fn add_new_filebox(
             }
         }
         FileboxFileType::File => {
-            let folder_name = Uuid::new_v4();
+            let folder_name = Uuid::new_v4().to_string();
             let prefix = format!("{}/{}", app_state.upload_path, folder_name);
             fs::create_dir_all(prefix.clone())?;
 
             let upload_file = form.file.unwrap();
             let file_name = upload_file.file_name.unwrap();
-            let store_filepath = format!("{}/{}", prefix, file_name);
+            let store_filepath = format!("{prefix}/{file_name}");
             upload_file.file.persist(store_filepath).unwrap();
             AddFilebox {
                 code,
                 name: name.clone(),
                 file_type: FileType::File,
-                file_path: format!("{}/{}", folder_name, file_name),
+                file_path: format!("{folder_name}/{file_name}"),
                 created_at: now,
                 expired_at: now.add(Duration::days(day)),
                 ..Default::default()

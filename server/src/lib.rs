@@ -6,3 +6,9 @@ pub mod models;
 pub mod routers;
 pub mod scheduler;
 pub mod state;
+
+#[cfg(test)]
+pub mod test_utils;
+
+#[cfg(test)]
+mod tests;

@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 use std::env;
-use std::{io, sync::Mutex};
+use std::io;
 
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
@@ -19,6 +19,10 @@ async fn main() -> io::Result<()> {
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL is required");
     let http_server_addr = env::var("HTTP_SERVER_ADDR").expect("HTTP_SERVER_ADDR is required");
     let upload_path = env::var("UPLOAD_FILE_PATH").expect("UPLOAD_FILE_PATH is required");
+    let graceful_shutdown_timeout_sec = env::var("GRACEFUL_SHUTDOWN_TIMEOUT_SEC")
+        .expect("GRACEFUL_SHUTDOWN_TIMEOUT_SEC is required");
+    let graceful_shutdown_timeout_sec: u64 = graceful_shutdown_timeout_sec.parse()
+        .unwrap_or_else(|_| panic!("GRACEFUL_SHUTDOWN_TIMEOUT_SEC should be a u64 type but got {graceful_shutdown_timeout_sec}"));
     let db_pool = PgPoolOptions::new().connect(&database_url).await.unwrap();
 
     // The length of generated codes
@@ -30,10 +34,10 @@ async fn main() -> io::Result<()> {
 
     let shared_data = web::Data::new(AppState {
         health_check_response: "I'm OK.".to_string(),
-        visit_count: Mutex::new(0),
+        visit_count: std::sync::Mutex::new(0),
         upload_path,
         db: db_pool.clone(),
-        code_gen: Mutex::new(RefCell::new(generator)),
+        code_gen: tokio::sync::Mutex::new(RefCell::new(generator)),
     });
 
     // Start scheduler on a new thread
@@ -61,5 +65,9 @@ async fn main() -> io::Result<()> {
     };
 
     log::info!("Filebox server run on: {http_server_addr}");
-    HttpServer::new(app).bind(http_server_addr)?.run().await
+    HttpServer::new(app)
+        .shutdown_timeout(graceful_shutdown_timeout_sec)
+        .bind(http_server_addr)?
+        .run()
+        .await
 }
