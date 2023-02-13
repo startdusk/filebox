@@ -12,9 +12,6 @@ mod tests {
         let tdb = get_tdb();
         let db_pool = tdb.get_pool().await;
         let length: usize = 5;
-
-        // Create a generator. The generator must be mutable, because each
-        // code generated updates its state.
         let generator = ShortCodeGenerator::new_lowercase_alphanumeric(length);
 
         let shared_data = web::Data::new(AppState {

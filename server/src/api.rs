@@ -62,8 +62,7 @@ impl Validate for CreateFileboxRequest {
     }
 }
 
-/// GetFileboxResp 获取文件柜信息
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GetFileboxResponse {
     pub id: i64,
     pub code: String,
@@ -74,7 +73,7 @@ pub struct GetFileboxResponse {
     pub used_at: Option<i64>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TakeTextResponse {
     pub id: i64,
     pub code: String,
@@ -86,7 +85,6 @@ pub struct TakeTextResponse {
     pub used_at: i64,
 }
 
-/// CreateFileboxResp 返回创建文件柜信息
 #[derive(Debug, Clone, Serialize)]
 pub struct CreateFileboxResponse {
     pub id: i64,

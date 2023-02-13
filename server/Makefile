@@ -15,7 +15,12 @@ initdb:
     --name=postgres-docker \
     postgres -N 1000
 
-.PHONY: test 
+.PHONY: test/integration
+test/integration:
+	@cargo test --lib -- tests::filebox::tests::test_filebox_lifecycle --exact --nocapture
+	@cargo test --lib -- tests::general::tests::test_health --exact --nocapture
+
+.PHONY: testall 
 test: fmt
 	@cargo nextest run
 

@@ -19,17 +19,14 @@ async fn main() -> io::Result<()> {
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL is required");
     let http_server_addr = env::var("HTTP_SERVER_ADDR").expect("HTTP_SERVER_ADDR is required");
     let upload_path = env::var("UPLOAD_FILE_PATH").expect("UPLOAD_FILE_PATH is required");
+    std::fs::create_dir_all(upload_path.clone())?;
     let graceful_shutdown_timeout_sec = env::var("GRACEFUL_SHUTDOWN_TIMEOUT_SEC")
         .expect("GRACEFUL_SHUTDOWN_TIMEOUT_SEC is required");
     let graceful_shutdown_timeout_sec: u64 = graceful_shutdown_timeout_sec.parse()
         .unwrap_or_else(|_| panic!("GRACEFUL_SHUTDOWN_TIMEOUT_SEC should be a u64 type but got {graceful_shutdown_timeout_sec}"));
     let db_pool = PgPoolOptions::new().connect(&database_url).await.unwrap();
 
-    // The length of generated codes
     let length: usize = 5;
-
-    // Create a generator. The generator must be mutable, because each
-    // code generated updates its state.
     let generator = ShortCodeGenerator::new_lowercase_alphanumeric(length);
 
     let shared_data = web::Data::new(AppState {

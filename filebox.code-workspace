@@ -1,14 +1,18 @@
 {
 	"folders": [
 		{
-			"path": "."
+			"path": ".",
+			"name": "filebox"
 		},
 		{
-			"path": "web"
+			"path": "web",
+			"name": "web"
 		},
 		{
-			"path": "server"
+			"path": "server",
+			"name": "server"
 		}
 	],
-	"settings": {}
+	"settings": {
+	}
 }
