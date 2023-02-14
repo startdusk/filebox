@@ -41,12 +41,12 @@ impl Error {
             Error::ValidateArgsError(_) | Error::InputValidateError(_) => {
                 "input validate error".to_string()
             }
+
+            Error::InvalidFileType(err) => format!("invalid file type: {}", err),
             Error::NotFound => "not found".to_string(),
-            Error::IOError(_)
-            | Error::MultipartError(_)
-            | Error::DbError(_)
-            | Error::InvalidFileType(_)
-            | Error::Unknown => "internal server error".to_string(),
+            Error::IOError(_) | Error::MultipartError(_) | Error::DbError(_) | Error::Unknown => {
+                "internal server error".to_string()
+            }
         }
     }
 }
@@ -55,9 +55,7 @@ impl From<sqlx::Error> for Error {
     fn from(e: sqlx::Error) -> Self {
         match e {
             sqlx::Error::Database(e) => Error::DbError(sqlx::Error::Database(e)),
-
             sqlx::Error::RowNotFound => Error::NotFound,
-
             _ => Error::DbError(e),
         }
     }

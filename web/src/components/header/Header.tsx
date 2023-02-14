@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import styles from "./Header.module.css";
-import { Route, ConstantSource } from "../../constant";
+import { Route, ConstantSource } from "../../filebox";
 
 interface PropsType {
   title: string;
