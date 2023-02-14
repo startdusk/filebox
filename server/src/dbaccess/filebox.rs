@@ -19,18 +19,19 @@ pub async fn get_filebox_db(pool: &PgPool, code: String) -> Result<Filebox, Erro
     Ok(filebox)
 }
 
-pub async fn delete_expired_filebox_db(pool: &PgPool) -> Result<(), Error> {
+pub async fn delete_expired_filebox_db(pool: &PgPool) -> Result<Vec<Filebox>, Error> {
     let now = Local::now().naive_local();
-    let _ = sqlx::query(
+
+    let filebox_vec: Vec<Filebox> = sqlx::query_as(
         r#"
-		DELETE FROM filebox WHERE expired_at < $1 OR used_at IS NOT NULL
+		DELETE FROM filebox WHERE expired_at < $1 OR used_at IS NOT NULL RETURNING *
 	"#,
     )
     .bind(now)
-    .execute(pool)
+    .fetch_all(pool)
     .await?;
 
-    Ok(())
+    Ok(filebox_vec)
 }
 
 pub async fn add_new_filebox_db(pool: &PgPool, filebox: AddFilebox) -> Result<Filebox, Error> {
@@ -131,8 +132,8 @@ mod tests {
         assert!(get_update_filebox.has_taken());
 
         // 4.delete the used filebox
-        delete_expired_filebox_db(&pool).await.unwrap();
-
+        let filebox_vec = delete_expired_filebox_db(&pool).await.unwrap();
+        assert_eq!(filebox_vec.len(), 1);
         let resp = get_filebox_db(&pool, code.clone()).await;
         assert!(resp.is_err());
     }

@@ -37,7 +37,6 @@ pub async fn add_new_filebox(
     app_state: web::Data<AppState>,
     form: MultipartForm<CreateFileboxRequest>,
 ) -> Result<HttpResponse, Error> {
-    dbg!("testing");
     let code_gen = app_state.code_gen.lock().await;
     let code = code_gen.borrow_mut().next_string();
     dbg!(code.clone());

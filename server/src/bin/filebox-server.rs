@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::env;
 use std::io;
+use std::time::Duration;
 
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
@@ -11,7 +12,7 @@ use server::state::AppState;
 use sqlx::postgres::PgPoolOptions;
 use tiny_id::ShortCodeGenerator;
 
-#[actix_rt::main]
+#[tokio::main]
 async fn main() -> io::Result<()> {
     dotenvy::dotenv().ok();
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
@@ -20,6 +21,7 @@ async fn main() -> io::Result<()> {
     let http_server_addr = env::var("HTTP_SERVER_ADDR").expect("HTTP_SERVER_ADDR is required");
     let upload_path = env::var("UPLOAD_FILE_PATH").expect("UPLOAD_FILE_PATH is required");
     std::fs::create_dir_all(upload_path.clone())?;
+
     let graceful_shutdown_timeout_sec = env::var("GRACEFUL_SHUTDOWN_TIMEOUT_SEC")
         .expect("GRACEFUL_SHUTDOWN_TIMEOUT_SEC is required");
     let graceful_shutdown_timeout_sec: u64 = graceful_shutdown_timeout_sec.parse()
@@ -32,13 +34,15 @@ async fn main() -> io::Result<()> {
     let shared_data = web::Data::new(AppState {
         health_check_response: "I'm OK.".to_string(),
         visit_count: std::sync::Mutex::new(0),
-        upload_path,
+        upload_path: upload_path.clone(),
         db: db_pool.clone(),
         code_gen: tokio::sync::Mutex::new(RefCell::new(generator)),
     });
 
     // Start scheduler on a new thread
-    actix_rt::spawn(async move { start_clean_expired_filebox(&db_pool.clone()).await });
+    let scheduler_handle = tokio::spawn(async move {
+        start_clean_expired_filebox(&db_pool.clone(), upload_path.clone()).await
+    });
 
     let app = move || {
         let cors = Cors::default()
@@ -62,9 +66,33 @@ async fn main() -> io::Result<()> {
     };
 
     log::info!("Filebox server run on: {http_server_addr}");
-    HttpServer::new(app)
-        .shutdown_timeout(graceful_shutdown_timeout_sec)
+    let server = HttpServer::new(app)
         .bind(http_server_addr)?
-        .run()
-        .await
+        .disable_signals()
+        .shutdown_timeout(graceful_shutdown_timeout_sec) // Modified shutdown timeout, less than 30 seconds.
+        .run();
+
+    let server_handle = server.handle();
+    let signal = tokio::signal::ctrl_c();
+
+    tokio::pin!(server);
+    tokio::select! {
+        r = signal => {
+            log::info!("received interrupt signal");
+            r.unwrap();
+            let ((), r) = tokio::join!(server_handle.stop(true), server);
+            r.unwrap();
+
+            tokio::time::sleep(Duration::from_secs(5)).await;
+            scheduler_handle.abort();
+        }
+        r = &mut server => {
+            log::info!("server finished");
+            r.unwrap();
+            tokio::time::sleep(Duration::from_secs(5)).await;
+            scheduler_handle.abort();
+        }
+    }
+
+    Ok(())
 }

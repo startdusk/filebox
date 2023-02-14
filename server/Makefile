@@ -32,3 +32,6 @@ fmt:
 run:
 	@cargo run --bin filebox-server
 
+.PHONY: watch
+watch: fmt
+	@cargo watch -x run

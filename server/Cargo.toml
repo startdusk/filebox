@@ -27,8 +27,8 @@ log = "0.4.0"
 actix-files = "0.6.2"
 actix-cors = "0.6.4"
 tiny_id = "0.1.5"
-tokio = { version = "1.25.0", features = ["sync"] }
+tokio = { version = "1.25.0", features = ["full"] }
 
 [dev-dependencies]
 sqlx-db-tester = "0.3.4"
-
+actix-http = "3.3.0"

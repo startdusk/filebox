@@ -1,50 +1,32 @@
 #[cfg(test)]
 mod tests {
-    use std::{cell::RefCell, ops::Add};
+    use std::ops::Add;
 
     use crate::{
-        api::{FileboxFileType, GetFileboxResponse, TakeTextResponse},
+        api::{GetFileboxResponse, TakeTextResponse},
         dbaccess::filebox::add_new_filebox_db,
         models::filebox::{AddFilebox, FileType},
         routers::filebox_routes,
-        state::AppState,
-        test_utils::get_tdb,
+        test_utils::{create_test_app, get_tdb},
     };
 
-    use actix_web::{test, web, App};
+    use actix_web::test;
     use chrono::{Duration, Local};
-    use serde::Serialize;
-    use tiny_id::ShortCodeGenerator;
 
-    #[derive(Debug, Serialize)]
-    struct CreateFileboxForm {
-        pub name: String,
-        pub text: String,
-        pub duration_day: u8,
-        pub file_type: FileboxFileType,
-    }
+    // #[derive(Debug, Serialize)]
+    // struct CreateFileboxForm {
+    //     pub name: String,
+    //     pub text: String,
+    //     pub duration_day: u8,
+    //     pub file_type: FileboxFileType,
+    // }
 
     #[actix_web::test]
     async fn test_filebox_lifecycle() {
         let tdb = get_tdb();
         let db_pool = tdb.get_pool().await;
-        let length: usize = 5;
 
-        let generator = ShortCodeGenerator::new_lowercase_alphanumeric(length);
-
-        let shared_data = web::Data::new(AppState {
-            health_check_response: "I'm OK.".to_string(),
-            visit_count: std::sync::Mutex::new(0),
-            upload_path: "./todo".to_string(),
-            db: db_pool.clone(),
-            code_gen: tokio::sync::Mutex::new(RefCell::new(generator)),
-        });
-        let app = test::init_service(
-            App::new()
-                .app_data(shared_data.clone())
-                .configure(filebox_routes),
-        )
-        .await;
+        let app = create_test_app(&db_pool.clone(), filebox_routes).await;
 
         // TODO: How can i send a multipart(file) to TestRequest? #2512: https://github.com/actix/actix-web/discussions/2512
         // let req = test::TestRequest::post()
