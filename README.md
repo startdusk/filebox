@@ -2,6 +2,12 @@
 
 一个网络版丰巢智能柜, 想放什么东西给谁, 无需登录注册, 用完即走
 
+首页
+![homepage](./resources/images/homepage.png)
+
+取件
+![pickuppage](./resources/images/pickuppage.png)
+
 ## 为什么想做这个东西？
 
 - 闹着玩
