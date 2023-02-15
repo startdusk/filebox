@@ -101,6 +101,12 @@ pub enum FileboxFileType {
     File = 2,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct HealthCheckResponse {
+    pub message: String,
+    pub health_check_count: u64,
+}
+
 impl From<&FileboxFileType> for u8 {
     fn from(v: &FileboxFileType) -> Self {
         match v {
@@ -198,4 +204,9 @@ impl From<Filebox> for CreateFileboxResponse {
             expired_at: v.expired_at.timestamp(),
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ErrorResponse {
+    pub message: String,
 }

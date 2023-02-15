@@ -42,7 +42,7 @@ impl Error {
                 "input validate error".to_string()
             }
 
-            Error::InvalidFileType(err) => format!("invalid file type: {}", err),
+            Error::InvalidFileType(err) => format!("invalid file type: {err}"),
             Error::NotFound => "not found".to_string(),
             Error::IOError(_) | Error::MultipartError(_) | Error::DbError(_) | Error::Unknown => {
                 "internal server error".to_string()

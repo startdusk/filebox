@@ -39,7 +39,6 @@ pub async fn add_new_filebox(
 ) -> Result<HttpResponse, Error> {
     let code_gen = app_state.code_gen.lock().await;
     let code = code_gen.borrow_mut().next_string();
-    dbg!(code.clone());
 
     let form = form.into_inner(); // need to take mutable ownership of the form
     form.validate()?;

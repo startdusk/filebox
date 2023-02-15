@@ -1,11 +1,11 @@
 use std::cell::RefCell;
 use std::env;
 use std::io;
-use std::time::Duration;
 
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{http, web, App, HttpServer};
+use server::middlewares::IPAllower;
 use server::routers::{filebox_routes, general_routes};
 use server::scheduler::start_clean_expired_filebox;
 use server::state::AppState;
@@ -39,7 +39,6 @@ async fn main() -> io::Result<()> {
         code_gen: tokio::sync::Mutex::new(RefCell::new(generator)),
     });
 
-    // Start scheduler on a new thread
     let scheduler_handle = tokio::spawn(async move {
         start_clean_expired_filebox(&db_pool.clone(), upload_path.clone()).await
     });
@@ -48,9 +47,9 @@ async fn main() -> io::Result<()> {
         let cors = Cors::default()
             .allowed_origin("http://localhost:5173")
             .allowed_origin("http://127.0.0.1:5173")
-            .allowed_origin_fn(|origin, _req_head| {
-                origin.as_bytes().starts_with(b"http://localhost")
-            })
+            // .allowed_origin_fn(|origin, _req_head| {
+            //     origin.as_bytes().starts_with(b"http://localhost")
+            // })
             .allowed_methods(vec!["GET", "POST"])
             .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
             .allowed_header(http::header::CONTENT_TYPE)
@@ -61,6 +60,7 @@ async fn main() -> io::Result<()> {
             .app_data(shared_data.clone())
             .configure(general_routes)
             .configure(filebox_routes)
+            .wrap(IPAllower::new(5, chrono::Duration::days(1)))
             .wrap(cors)
             .wrap(Logger::default())
     };
@@ -83,13 +83,13 @@ async fn main() -> io::Result<()> {
             let ((), r) = tokio::join!(server_handle.stop(true), server);
             r.unwrap();
 
-            tokio::time::sleep(Duration::from_secs(5)).await;
+            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
             scheduler_handle.abort();
         }
         r = &mut server => {
             log::info!("server finished");
             r.unwrap();
-            tokio::time::sleep(Duration::from_secs(5)).await;
+            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
             scheduler_handle.abort();
         }
     }
