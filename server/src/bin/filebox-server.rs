@@ -1,16 +1,23 @@
 use std::cell::RefCell;
 use std::env;
 use std::io;
+use std::sync::Arc;
 
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{http, web, App, HttpServer};
+use chrono::Local;
+use chrono::Utc;
+use dashmap::DashMap;
 use server::middlewares::IPAllower;
+use server::middlewares::IPMap;
 use server::routers::{filebox_routes, general_routes};
 use server::scheduler::start_clean_expired_filebox;
 use server::state::AppState;
 use sqlx::postgres::PgPoolOptions;
 use tiny_id::ShortCodeGenerator;
+use tokio_schedule::every;
+use tokio_schedule::Job;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
@@ -39,6 +46,23 @@ async fn main() -> io::Result<()> {
         code_gen: tokio::sync::Mutex::new(RefCell::new(generator)),
     });
 
+    let ip_map: IPMap = Arc::new(DashMap::new());
+    let ips = Arc::clone(&ip_map);
+    // TODO: 考虑合并 join!
+    tokio::spawn(async move {
+        every(1)
+            .hours()
+            .in_timezone(&Utc)
+            .perform(|| async {
+                log::info!("start_clean_expired_filebox event - start");
+                let ips = ips.clone();
+                let now_timestamp = Local::now().naive_local().timestamp();
+                ips.retain(|_key, ip_info| ip_info.borrow().expired_at > now_timestamp);
+                log::info!("start_clean_expired_filebox event - end");
+            })
+            .await;
+    });
+
     let scheduler_handle = tokio::spawn(async move {
         start_clean_expired_filebox(&db_pool.clone(), upload_path.clone()).await
     });
@@ -56,11 +80,12 @@ async fn main() -> io::Result<()> {
             .supports_credentials()
             .max_age(3600);
 
+        let ip_allower = IPAllower::new(5, chrono::Duration::days(1), ip_map.clone());
         App::new()
             .app_data(shared_data.clone())
             .configure(general_routes)
             .configure(filebox_routes)
-            .wrap(IPAllower::new(5, chrono::Duration::days(1)))
+            .wrap(ip_allower)
             .wrap(cors)
             .wrap(Logger::default())
     };

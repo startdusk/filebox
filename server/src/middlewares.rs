@@ -1,17 +1,16 @@
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-    future::{ready, Ready},
-    ops::Add,
-    rc::Rc,
-};
+use std::{future::Future, ops::Add, pin::Pin, rc::Rc, sync::Arc};
 
+use actix_http::{body::EitherBody, StatusCode};
+use actix_utils::future::{ok, Ready};
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    Error,
+    Error, HttpResponse,
 };
+use atomic_refcell::AtomicRefCell;
 use chrono::{Duration, Local, NaiveDateTime};
-use futures_util::future::LocalBoxFuture;
+use dashmap::DashMap;
+
+type Store = Arc<AtomicRefCell<IPAllowStore>>;
 
 // There are two steps in middleware processing.
 // 1. Middleware initialization, middleware factory gets called with
@@ -19,13 +18,14 @@ use futures_util::future::LocalBoxFuture;
 // 2. Middleware's call method gets called with normal request.
 #[derive(Debug)]
 pub struct IPAllower {
-    pub limit: i32,
-    pub duration: Duration,
+    store: Store,
 }
 
 impl IPAllower {
-    pub fn new(limit: i32, duration: Duration) -> Self {
-        Self { limit, duration }
+    pub fn new(limit: i32, duration: Duration, ips: IPMap) -> Self {
+        Self {
+            store: Arc::new(AtomicRefCell::new(IPAllowStore::new(limit, duration, ips))),
+        }
     }
 }
 
@@ -38,26 +38,23 @@ where
     S::Future: 'static,
     B: 'static,
 {
-    type Response = ServiceResponse<B>;
+    type Response = ServiceResponse<EitherBody<B>>;
     type Error = Error;
     type InitError = ();
     type Transform = IPAllowMiddleware<S>;
     type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        ready(Ok(IPAllowMiddleware {
+        ok(IPAllowMiddleware {
             service: Rc::new(service),
-            inner: Rc::new(tokio::sync::Mutex::new(RefCell::new(IPAllowInner::new(
-                self.limit,
-                self.duration,
-            )))),
-        }))
+            store: self.store.clone(),
+        })
     }
 }
 
 pub struct IPAllowMiddleware<S> {
     service: Rc<S>,
-    inner: Rc<tokio::sync::Mutex<RefCell<IPAllowInner>>>,
+    store: Store,
 }
 
 #[derive(Debug)]
@@ -72,9 +69,9 @@ where
     S::Future: 'static,
     B: 'static,
 {
-    type Response = ServiceResponse<B>;
+    type Response = ServiceResponse<EitherBody<B>>;
     type Error = Error;
-    type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
+    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
 
     forward_ready!(service);
 
@@ -85,47 +82,41 @@ where
             None => peer_addr_ip,
         };
 
-        let inner = self.inner.clone();
+        let store = Arc::clone(&self.store);
 
-        let srv = self.service.clone();
+        let srv = Rc::clone(&self.service);
         Box::pin(async move {
-            let fut_inner = inner.clone();
-            {
-                let inner = inner.lock().await;
-                let ip_allow = inner.borrow();
-                if !ip_allow.allow_ip(ip.clone()) {
-                    // let res = req.into_response(HttpResponse::Forbidden().finish());
-                    // return Box::pin(async move { Ok(res) });
-                }
-            }
-
-            let fut = srv.call(req);
-            match fut.await {
-                Ok(res) => Ok(res),
-                Err(err) => {
-                    let inner = fut_inner.lock().await;
-                    let mut ip_allow = inner.borrow_mut();
+            let ip_allow = store.borrow();
+            match ip_allow.allow_ip(ip.clone()) {
+                true => srv.call(req).await.map(|err| {
+                    // TODO: 判断路径和错误类型, 限制错误5次当日就不能再访问了
+                    let mut ip_allow = store.borrow_mut();
                     ip_allow.add_ip(ip);
-                    Err(err)
-                }
+                    let status_code = err.status();
+                    err.into_response(HttpResponse::new(status_code).map_into_right_body())
+                }),
+                false => Ok(req
+                    .into_response(HttpResponse::new(StatusCode::FORBIDDEN).map_into_right_body())),
             }
         })
     }
 }
 
+pub type IPMap = Arc<DashMap<String, AtomicRefCell<IPInfo>>>;
+
 #[derive(Debug)]
-pub struct IPAllowInner {
-    pub limit: i32,
-    pub duration: Duration,
-    ips: HashMap<String, RefCell<IPInfo>>,
+pub struct IPAllowStore {
+    limit: i32,
+    duration: Duration,
+    ips: IPMap,
 }
 
-impl IPAllowInner {
-    pub fn new(limit: i32, duration: Duration) -> Self {
+impl IPAllowStore {
+    pub fn new(limit: i32, duration: Duration, ips: IPMap) -> Self {
         Self {
             limit,
             duration,
-            ips: HashMap::new(),
+            ips,
         }
     }
 
@@ -144,12 +135,12 @@ impl IPAllowInner {
 
     pub fn add_ip(&mut self, ip: String) {
         let now = self.now();
-        if let std::collections::hash_map::Entry::Vacant(e) = self.ips.entry(ip.clone()) {
+        if let dashmap::mapref::entry::Entry::Vacant(e) = self.ips.entry(ip.clone()) {
             let ip_info = IPInfo {
                 count: 1,
                 expired_at: now.add(self.duration).timestamp(),
             };
-            e.insert(RefCell::new(ip_info));
+            e.insert(AtomicRefCell::new(ip_info));
         } else {
             let ip_info = self.ips.get(&ip).unwrap();
             let mut ip_info = ip_info.borrow_mut();
@@ -158,17 +149,24 @@ impl IPAllowInner {
         }
     }
 
-    pub fn remove_expired_ip(&mut self) {
-        let now_timestamp = self.now_timestamp();
-        self.ips
-            .retain(|_key, ip_info| ip_info.borrow().expired_at <= now_timestamp)
-    }
-
     fn now(&self) -> NaiveDateTime {
         Local::now().naive_local()
     }
+}
 
-    fn now_timestamp(&self) -> i64 {
-        self.now().timestamp()
-    }
+#[cfg(test)]
+mod tests {
+    // use super::*;
+
+    // #[tokio::test]
+    // async fn ip_allow_should_work() {
+    //     let mut ip_allow = IPAllowInner::new(1, chrono::Duration::seconds(1));
+
+    //     let ip = "127.0.0.1".to_string();
+    //     assert!(ip_allow.allow_ip(ip.clone()));
+    //     ip_allow.add_ip(ip.clone());
+    //     assert!(ip_allow.allow_ip(ip.clone()));
+    //     // std::thread::sleep(std::time::Duration::new(1, 0));
+    //     assert_eq!(ip_allow.allow_ip(ip.clone()), false);
+    // }
 }
