@@ -1,28 +1,41 @@
 use std::cell::RefCell;
 use std::env;
 use std::io;
+use std::io::Write;
 use std::sync::Arc;
 
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{http, web, App, HttpServer};
 use chrono::Local;
-use chrono::Utc;
 use dashmap::DashMap;
+use server::api::IPMap;
 use server::middlewares::IPAllower;
-use server::middlewares::IPMap;
 use server::routers::{filebox_routes, general_routes};
 use server::scheduler::start_clean_expired_filebox;
+use server::scheduler::start_clean_expired_ip;
 use server::state::AppState;
 use sqlx::postgres::PgPoolOptions;
 use tiny_id::ShortCodeGenerator;
-use tokio_schedule::every;
-use tokio_schedule::Job;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
     dotenvy::dotenv().ok();
-    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+    let env = env_logger::Env::new().default_filter_or("info");
+    env_logger::Builder::from_env(env)
+        .format(|buf, record| {
+            let level = { buf.default_styled_level(record.level()) };
+            writeln!(
+                buf,
+                "[{}] {} [{}:{}] {}",
+                Local::now().format("%Y-%m-%d %H:%M:%S"),
+                level,
+                record.module_path().unwrap_or("<unnamed>"),
+                record.line().unwrap_or(0),
+                &record.args(),
+            )
+        })
+        .init();
 
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL is required");
     let http_server_addr = env::var("HTTP_SERVER_ADDR").expect("HTTP_SERVER_ADDR is required");
@@ -48,23 +61,13 @@ async fn main() -> io::Result<()> {
 
     let ip_map: IPMap = Arc::new(DashMap::new());
     let ips = Arc::clone(&ip_map);
-    // TODO: 考虑合并 join!
-    tokio::spawn(async move {
-        every(1)
-            .hours()
-            .in_timezone(&Utc)
-            .perform(|| async {
-                log::info!("start_clean_expired_filebox event - start");
-                let ips = ips.clone();
-                let now_timestamp = Local::now().naive_local().timestamp();
-                ips.retain(|_key, ip_info| ip_info.borrow().expired_at > now_timestamp);
-                log::info!("start_clean_expired_filebox event - end");
-            })
-            .await;
-    });
 
+    let pool = db_pool.clone();
     let scheduler_handle = tokio::spawn(async move {
-        start_clean_expired_filebox(&db_pool.clone(), upload_path.clone()).await
+        tokio::join!(
+            start_clean_expired_filebox(&pool, upload_path.clone()),
+            start_clean_expired_ip(ips)
+        );
     });
 
     let app = move || {

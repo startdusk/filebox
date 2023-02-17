@@ -11,6 +11,9 @@ pub fn general_routes(cfg: &mut web::ServiceConfig) {
 
 pub fn filebox_routes(cfg: &mut web::ServiceConfig) {
     cfg.route("/v1/filebox", web::post().to(add_new_filebox));
-    cfg.route("/v1/filebox/{code}", web::get().to(get_filebox_by_code));
-    cfg.route("/v1/filebox/{code}", web::post().to(take_filebox_by_code));
+    cfg.service(
+        web::resource("/v1/filebox/{code}")
+            .route(web::get().to(get_filebox_by_code))
+            .route(web::post().to(take_filebox_by_code)),
+    );
 }

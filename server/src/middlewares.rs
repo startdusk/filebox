@@ -8,7 +8,8 @@ use actix_web::{
 };
 use atomic_refcell::AtomicRefCell;
 use chrono::{Duration, Local, NaiveDateTime};
-use dashmap::DashMap;
+
+use crate::api::{IPInfo, IPMap};
 
 type Store = Arc<AtomicRefCell<IPAllowStore>>;
 
@@ -57,12 +58,6 @@ pub struct IPAllowMiddleware<S> {
     store: Store,
 }
 
-#[derive(Debug)]
-pub struct IPInfo {
-    pub count: i32,
-    pub expired_at: i64,
-}
-
 impl<S, B> Service<ServiceRequest> for IPAllowMiddleware<S>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
@@ -102,8 +97,6 @@ where
     }
 }
 
-pub type IPMap = Arc<DashMap<String, AtomicRefCell<IPInfo>>>;
-
 #[derive(Debug)]
 pub struct IPAllowStore {
     limit: i32,
@@ -136,10 +129,7 @@ impl IPAllowStore {
     pub fn add_ip(&mut self, ip: String) {
         let now = self.now();
         if let dashmap::mapref::entry::Entry::Vacant(e) = self.ips.entry(ip.clone()) {
-            let ip_info = IPInfo {
-                count: 1,
-                expired_at: now.add(self.duration).timestamp(),
-            };
+            let ip_info = IPInfo::new(1, now.add(self.duration).timestamp());
             e.insert(AtomicRefCell::new(ip_info));
         } else {
             let ip_info = self.ips.get(&ip).unwrap();

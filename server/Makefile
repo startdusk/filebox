@@ -20,7 +20,7 @@ test/integration:
 	@cargo test --lib -- tests::filebox::tests::test_filebox_lifecycle --exact --nocapture
 	@cargo test --lib -- tests::general::tests::test_health --exact --nocapture
 
-.PHONY: testall 
+.PHONY: test 
 test: fmt
 	@cargo nextest run
 
