@@ -33,6 +33,7 @@ actix-web-lab = "0.18.9"
 actix-http = "3.3.0"
 redis = { version = "0.22.3", features = ["tokio-comp"] }
 serde_json = "1.0.93"
+anyhow = "1.0.64"
 
 [dev-dependencies]
 sqlx-db-tester = "0.3.4"

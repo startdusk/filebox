@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::env;
-use std::io;
 use std::io::Write;
 
 use actix_cors::Cors;
@@ -17,12 +16,12 @@ use server::middlewares::redis_ip_allower_mw;
 use server::scheduler::start_clean_expired_filebox;
 use server::state::AppState;
 use server::state::FileboxState;
-use server::state::IPAllower;
+use server::IPAllower;
 use sqlx::postgres::PgPoolOptions;
 use tiny_id::ShortCodeGenerator;
 
 #[tokio::main]
-async fn main() -> io::Result<()> {
+async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
     let env = env_logger::Env::new().default_filter_or("info");
     env_logger::Builder::from_env(env)
@@ -49,14 +48,13 @@ async fn main() -> io::Result<()> {
         .expect("GRACEFUL_SHUTDOWN_TIMEOUT_SEC is required");
     let graceful_shutdown_timeout_sec: u64 = graceful_shutdown_timeout_sec.parse()
         .unwrap_or_else(|_| panic!("GRACEFUL_SHUTDOWN_TIMEOUT_SEC should be a u64 type but got {graceful_shutdown_timeout_sec}"));
-    let db_pool = PgPoolOptions::new().connect(&database_url).await.unwrap();
+    let db_pool = PgPoolOptions::new().connect(&database_url).await?;
 
-    let length: usize = 5;
-    let generator = ShortCodeGenerator::new_lowercase_alphanumeric(length);
+    let generator = ShortCodeGenerator::new_lowercase_alphanumeric(5);
 
-    // connect to redis
-    let client = redis::Client::open("redis://127.0.0.1/").unwrap();
-    let con = client.get_connection().unwrap();
+    let redis_conn_addr = env::var("REDIS_CONN_ADDR").expect("REDIS_CONN_ADDR is required");
+    let client = redis::Client::open(redis_conn_addr)?;
+    let con = client.get_connection()?;
 
     let ip_allower = IPAllower::new(con, 5, 1);
     let shared_data = web::Data::new(AppState {
@@ -124,14 +122,11 @@ async fn main() -> io::Result<()> {
             r.unwrap();
             let ((), r) = tokio::join!(server_handle.stop(true), server);
             r.unwrap();
-
-            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
             scheduler_handle.abort();
         }
         r = &mut server => {
             log::info!("server finished");
             r.unwrap();
-            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
             scheduler_handle.abort();
         }
     }

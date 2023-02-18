@@ -12,6 +12,7 @@ pub async fn redis_ip_allower_mw(
     req: ServiceRequest,
     next: Next<impl MessageBody>,
 ) -> Result<ServiceResponse<impl MessageBody>, Error> {
+    // TODO: lol
     let peer_addr_ip = req.peer_addr().unwrap().ip().to_string();
     let ip = match req.headers().get("X-REAL-IP") {
         Some(header) => String::from(header.to_str().unwrap()),
@@ -21,12 +22,12 @@ pub async fn redis_ip_allower_mw(
     {
         let mut ip_allower = ip_allower.borrow_mut();
         if !ip_allower.allow_ip(ip.clone()) {
-            return Err(errors::Error::IpAllowerError(
-                "今日口令错误已达5次, 请第二天再访问".to_string(),
-            )
+            return Err(errors::Error::IpAllowerError(format!(
+                "今日口令错误已达{}次, 请明天再访问",
+                ip_allower.limit
+            ))
             .into());
         }
-        drop(ip_allower)
     }
     let res = next.call(req).await?;
     if res.response().error().is_some() {
