@@ -1,9 +1,9 @@
-use chrono::{Local, Utc};
+use chrono::Utc;
 use sqlx::PgPool;
 use std::fs;
 use tokio_schedule::{every, Job};
 
-use crate::{api::IPMap, dbaccess::filebox::delete_expired_filebox_db, models::filebox::FileType};
+use crate::{dbaccess::filebox::delete_expired_filebox_db, models::filebox::FileType};
 
 pub async fn start_clean_expired_filebox(pool: &PgPool, upload_path: String) {
     every(1)
@@ -24,20 +24,6 @@ pub async fn start_clean_expired_filebox(pool: &PgPool, upload_path: String) {
                 Err(err) => log::error!("start_clean_expired_filebox event - failed {:?}", err),
             }
             log::info!("start_clean_expired_filebox event - end");
-        })
-        .await;
-}
-
-pub async fn start_clean_expired_ip(ips: IPMap) {
-    every(5)
-        .minutes()
-        .in_timezone(&Utc)
-        .perform(|| async {
-            log::info!("start_clean_expired_ip event - start");
-            let ips = ips.clone();
-            let now_timestamp = Local::now().naive_local().timestamp();
-            ips.retain(|_key, ip_info| ip_info.borrow().expired_at > now_timestamp);
-            log::info!("start_clean_expired_ip event - end");
         })
         .await;
 }

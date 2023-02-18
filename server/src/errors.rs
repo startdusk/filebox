@@ -30,6 +30,9 @@ pub enum Error {
     #[error("No file box found by the given condition")]
     NotFound,
 
+    #[error("{0}")]
+    IpAllowerError(String),
+
     #[error("Unknown error")]
     Unknown,
 }
@@ -37,6 +40,7 @@ pub enum Error {
 impl Error {
     fn error_response(&self) -> String {
         match self {
+            Error::IpAllowerError(msg) => msg.to_string(),
             Error::InvalidCode(msg) => msg.to_string(),
             Error::ValidateArgsError(_) | Error::InputValidateError(_) => {
                 "input validate error".to_string()
@@ -74,7 +78,7 @@ impl ResponseError for Error {
             | Error::InvalidFileType(_)
             | Error::InputValidateError(_) => StatusCode::BAD_REQUEST,
             Error::NotFound => StatusCode::NOT_FOUND,
-
+            Error::IpAllowerError(_) => StatusCode::FORBIDDEN,
             Error::IOError(_) | Error::DbError(_) | Error::Unknown | Error::MultipartError(_) => {
                 StatusCode::INTERNAL_SERVER_ERROR
             }

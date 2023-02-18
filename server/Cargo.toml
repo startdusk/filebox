@@ -28,10 +28,11 @@ actix-files = "0.6.2"
 actix-cors = "0.6.4"
 tiny_id = "0.1.5"
 tokio = { version = "1.25.0", features = ["full"] }
-dashmap = "5.4.0"
-atomic_refcell = "0.1.9"
-actix-http = "3.3.0"
 actix-utils = "3.0.1"
+actix-web-lab = "0.18.9"
+actix-http = "3.3.0"
+redis = { version = "0.22.3", features = ["tokio-comp"] }
+serde_json = "1.0.93"
 
 [dev-dependencies]
 sqlx-db-tester = "0.3.4"

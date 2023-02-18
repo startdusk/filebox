@@ -1,7 +1,3 @@
-use atomic_refcell::AtomicRefCell;
-use dashmap::DashMap;
-use std::sync::Arc;
-
 use actix_easy_multipart::{tempfile::Tempfile, text::Text, MultipartForm};
 use serde::{
     de::{self, Unexpected},
@@ -215,16 +211,13 @@ pub struct ErrorResponse {
     pub message: String,
 }
 
-pub type IPMap = Arc<DashMap<String, AtomicRefCell<IPInfo>>>;
-
-#[derive(Debug)]
-pub struct IPInfo {
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct IpInfo {
     pub count: i32,
-    pub expired_at: i64,
 }
 
-impl IPInfo {
-    pub fn new(count: i32, expired_at: i64) -> Self {
-        Self { count, expired_at }
+impl IpInfo {
+    pub fn new() -> Self {
+        Self { count: 0 }
     }
 }

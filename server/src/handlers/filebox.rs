@@ -26,6 +26,7 @@ pub async fn get_filebox_by_code(
     let code = code.into_inner();
 
     let filebox = get_filebox_db(&app_state.db, code).await?;
+
     if filebox.has_taken() {
         return Ok(HttpResponse::BadRequest().body("file box has taken"));
     }

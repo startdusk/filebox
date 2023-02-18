@@ -2,19 +2,22 @@ use std::cell::RefCell;
 use std::env;
 use std::io;
 use std::io::Write;
-use std::sync::Arc;
 
 use actix_cors::Cors;
+use actix_web::middleware;
 use actix_web::middleware::Logger;
 use actix_web::{http, web, App, HttpServer};
+use actix_web_lab::middleware::from_fn;
 use chrono::Local;
-use dashmap::DashMap;
-use server::api::IPMap;
-use server::middlewares::IPAllower;
-use server::routers::{filebox_routes, general_routes};
+use server::handlers::filebox::add_new_filebox;
+use server::handlers::filebox::get_filebox_by_code;
+use server::handlers::filebox::take_filebox_by_code;
+use server::handlers::general::health_check_handler;
+use server::middlewares::redis_ip_allower_mw;
 use server::scheduler::start_clean_expired_filebox;
-use server::scheduler::start_clean_expired_ip;
 use server::state::AppState;
+use server::state::FileboxState;
+use server::state::IPAllower;
 use sqlx::postgres::PgPoolOptions;
 use tiny_id::ShortCodeGenerator;
 
@@ -51,6 +54,11 @@ async fn main() -> io::Result<()> {
     let length: usize = 5;
     let generator = ShortCodeGenerator::new_lowercase_alphanumeric(length);
 
+    // connect to redis
+    let client = redis::Client::open("redis://127.0.0.1/").unwrap();
+    let con = client.get_connection().unwrap();
+
+    let ip_allower = IPAllower::new(con, 5, 1);
     let shared_data = web::Data::new(AppState {
         health_check_response: "I'm OK.".to_string(),
         visit_count: std::sync::Mutex::new(0),
@@ -59,16 +67,13 @@ async fn main() -> io::Result<()> {
         code_gen: tokio::sync::Mutex::new(RefCell::new(generator)),
     });
 
-    let ip_map: IPMap = Arc::new(DashMap::new());
-    let ips = Arc::clone(&ip_map);
+    let filebox_data = web::Data::new(FileboxState {
+        ip_allower: tokio::sync::Mutex::new(RefCell::new(ip_allower)),
+    });
 
     let pool = db_pool.clone();
-    let scheduler_handle = tokio::spawn(async move {
-        tokio::join!(
-            start_clean_expired_filebox(&pool, upload_path.clone()),
-            start_clean_expired_ip(ips)
-        );
-    });
+    let scheduler_handle =
+        tokio::spawn(async move { start_clean_expired_filebox(&pool, upload_path.clone()).await });
 
     let app = move || {
         let cors = Cors::default()
@@ -83,14 +88,23 @@ async fn main() -> io::Result<()> {
             .supports_credentials()
             .max_age(3600);
 
-        let ip_allower = IPAllower::new(5, chrono::Duration::days(1), ip_map.clone());
         App::new()
             .app_data(shared_data.clone())
-            .configure(general_routes)
-            .configure(filebox_routes)
-            .wrap(ip_allower)
+            .app_data(filebox_data.clone())
+            .wrap(middleware::DefaultHeaders::new().add(("Filebox-Version", "0.1")))
             .wrap(cors)
             .wrap(Logger::default())
+            .route("/health", web::get().to(health_check_handler))
+            .service(
+                web::scope("/v1/filebox")
+                    .wrap(from_fn(redis_ip_allower_mw))
+                    .route("/", web::post().to(add_new_filebox))
+                    .service(
+                        web::resource("/{code}")
+                            .route(web::get().to(get_filebox_by_code))
+                            .route(web::post().to(take_filebox_by_code)),
+                    ),
+            )
     };
 
     log::info!("Filebox server run on: {http_server_addr}");

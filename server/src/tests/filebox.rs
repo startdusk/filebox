@@ -6,7 +6,6 @@ mod tests {
         api::{GetFileboxResponse, TakeTextResponse},
         dbaccess::filebox::add_new_filebox_db,
         models::filebox::{AddFilebox, FileType},
-        routers::filebox_routes,
         test_utils::{create_test_app, get_tdb},
     };
 
@@ -26,7 +25,7 @@ mod tests {
         let tdb = get_tdb();
         let db_pool = tdb.get_pool().await;
 
-        let app = create_test_app(&db_pool.clone(), filebox_routes).await;
+        let app = create_test_app(&db_pool.clone()).await;
 
         // TODO: How can i send a multipart(file) to TestRequest? #2512: https://github.com/actix/actix-web/discussions/2512
         // let req = test::TestRequest::post()
