@@ -4,7 +4,7 @@ mod tests {
 
     use crate::{
         api::{GetFileboxResponse, TakeTextResponse},
-        dbaccess::filebox::add_new_filebox_db,
+        data::postgres::add_new_filebox_db,
         models::filebox::{AddFilebox, FileType},
         test_utils::{create_test_app, get_tdb},
     };

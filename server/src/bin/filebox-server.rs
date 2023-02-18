@@ -8,15 +8,14 @@ use actix_web::middleware::Logger;
 use actix_web::{http, web, App, HttpServer};
 use actix_web_lab::middleware::from_fn;
 use chrono::Local;
+use server::data::redis::IpAllower;
 use server::handlers::filebox::add_new_filebox;
 use server::handlers::filebox::get_filebox_by_code;
 use server::handlers::filebox::take_filebox_by_code;
 use server::handlers::general::health_check_handler;
 use server::middlewares::redis_ip_allower_mw;
 use server::scheduler::start_clean_expired_filebox;
-use server::state::AppState;
-use server::state::FileboxState;
-use server::IPAllower;
+use server::state::{AppState, CacheState};
 use sqlx::postgres::PgPoolOptions;
 use tiny_id::ShortCodeGenerator;
 
@@ -52,11 +51,6 @@ async fn main() -> anyhow::Result<()> {
     sqlx::migrate!("./migrations").run(&db_pool).await?;
     let generator = ShortCodeGenerator::new_lowercase_alphanumeric(5);
 
-    let redis_conn_addr = env::var("REDIS_CONN_ADDR").expect("REDIS_CONN_ADDR is required");
-    let client = redis::Client::open(redis_conn_addr)?;
-    let con = client.get_connection()?;
-
-    let ip_allower = IPAllower::new(con, 5, 1);
     let shared_data = web::Data::new(AppState {
         health_check_response: "I'm OK.".to_string(),
         visit_count: std::sync::Mutex::new(0),
@@ -65,8 +59,26 @@ async fn main() -> anyhow::Result<()> {
         code_gen: tokio::sync::Mutex::new(RefCell::new(generator)),
     });
 
-    let filebox_data = web::Data::new(FileboxState {
-        ip_allower: tokio::sync::Mutex::new(RefCell::new(ip_allower)),
+    let ip_visit_error_limit =
+        env::var("IP_VISIT_ERROR_LIMIT").expect("IP_VISIT_ERROR_LIMIT is required");
+    let ip_visit_error_limit: i32 = ip_visit_error_limit.parse().unwrap_or_else(|_| {
+        panic!("ip_visit_error_limit should be a i32 type but got {ip_visit_error_limit}")
+    });
+    let ip_visit_error_duration_day =
+        env::var("IP_VISIT_ERROR_DURATION_DAY").expect("IP_VISIT_ERROR_DURATION_DAY is required");
+    let ip_visit_error_duration_day: i64 = ip_visit_error_duration_day.parse().unwrap_or_else(|_| {
+        panic!("IP_VISIT_ERROR_DURATION_DAY should be a i64 type but got {ip_visit_error_duration_day}")
+    });
+
+    let redis_conn_addr = env::var("REDIS_CONN_ADDR").expect("REDIS_CONN_ADDR is required");
+    let client = redis::Client::open(redis_conn_addr)?;
+    let redis_conn = client.get_connection()?;
+    let cache_state = web::Data::new(CacheState {
+        ip_allower: tokio::sync::Mutex::new(RefCell::new(IpAllower::new(
+            redis_conn,
+            ip_visit_error_limit,
+            ip_visit_error_duration_day,
+        ))),
     });
 
     let pool = db_pool.clone();
@@ -88,7 +100,7 @@ async fn main() -> anyhow::Result<()> {
 
         App::new()
             .app_data(shared_data.clone())
-            .app_data(filebox_data.clone())
+            .app_data(cache_state.clone())
             .wrap(middleware::DefaultHeaders::new().add(("Filebox-Version", "0.1")))
             .wrap(cors)
             .wrap(Logger::default())

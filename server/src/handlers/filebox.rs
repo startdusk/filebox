@@ -14,7 +14,7 @@ use crate::api::{
     CreateFileboxRequest, CreateFileboxResponse, FileboxFileType, GetFileboxResponse,
     TakeTextResponse,
 };
-use crate::dbaccess::filebox::{add_new_filebox_db, get_filebox_db, update_filebox_db};
+use crate::data::postgres::{add_new_filebox_db, get_filebox_db, update_filebox_db};
 use crate::errors::Error;
 use crate::models::filebox::{AddFilebox, FileType};
 use crate::state::AppState;

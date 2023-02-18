@@ -3,7 +3,7 @@ use sqlx::PgPool;
 use std::fs;
 use tokio_schedule::{every, Job};
 
-use crate::{dbaccess::filebox::delete_expired_filebox_db, models::filebox::FileType};
+use crate::{data::postgres::delete_expired_filebox_db, models::filebox::FileType};
 
 pub async fn start_clean_expired_filebox(pool: &PgPool, upload_path: String) {
     every(1)

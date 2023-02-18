@@ -1,0 +1,12 @@
+.env
+.env.example
+.env.test
+examples/
+.dockerignore
+spec.yaml
+target/
+deploy/
+tests/
+Dockerfile
+scripts/
+uploaded/

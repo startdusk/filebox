@@ -2,7 +2,7 @@ use sqlx::postgres::PgPool;
 use std::cell::RefCell;
 use tiny_id::ShortCodeGenerator;
 
-use crate::IPAllower;
+use crate::data::redis::IpAllower;
 
 #[derive(Debug)]
 pub struct AppState {
@@ -16,6 +16,6 @@ pub struct AppState {
     pub code_gen: tokio::sync::Mutex<RefCell<ShortCodeGenerator<char>>>,
 }
 
-pub struct FileboxState {
-    pub ip_allower: tokio::sync::Mutex<RefCell<IPAllower>>,
+pub struct CacheState {
+    pub ip_allower: tokio::sync::Mutex<RefCell<IpAllower>>,
 }

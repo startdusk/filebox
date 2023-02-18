@@ -1,5 +1,3 @@
-include .env
-
 .PHONY: codeline
 codeline:
 	@tokei .
@@ -36,14 +34,14 @@ run:
 watch: fmt
 	@RUST_BACKTRACE=1 cargo watch -x run
 
-build-dev: clear-none-docker-image test
+build-dev:
 	@docker-compose build 
 
-up-dev: test
-	@docker-compose up server
+up-dev: 	
+	@docker-compose up filebox-server
 
 down-dev:
-	@docker-compose down server
+	@docker-compose down
 
 clear-none-docker-image:
 	@docker rm $(docker ps -a -q) 

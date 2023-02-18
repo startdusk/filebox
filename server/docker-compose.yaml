@@ -1,27 +1,36 @@
 version: '3'
 services: 
-  postgres:
-    image: postgres:14.5-alpine
+  db:
+    image: postgres:latest
     ports:
-      - 5432:5432
+      - '5432:5432'
     environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: filebox
       POSTGRES_PASSWORD: password
       TZ: 'GMT+8'
       PGTZ: 'GMT+8'
   redis:
-    image: redis:latest
+    image: redis/redis-stack:latest
     restart: always
     entrypoint: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
     ports:
-      - 6379:6379
-  server:
+      - '6379:6379'
+  filebox-server:
     build: .
     links:
-      - postgres:postgres
+      - db:db
       - redis:redis
     ports:
-      - 8888:8888
+      - "8080:8080"
+    expose:
+      - 8080
     environment:
-      DATABASE_URL: 'postgres://postgres:password@postgres:5432/filebox?sslmode=disable'
-      DATABASE_TIMEOUT_MS: 10000
-    
+      DATABASE_URL: 'postgres://postgres:password@db/filebox'
+      HTTP_SERVER_ADDR: 'localhost:8080'
+      UPLOAD_FILE_PATH: 'uploaded'
+      GRACEFUL_SHUTDOWN_TIMEOUT_SEC: 5
+      REDIS_CONN_ADDR: 'redis://redis/'
+      CODE_LEN: 5
+      IP_VISIT_ERROR_LIMIT: 5
+      IP_VISIT_ERROR_DURATION_DAY: 1

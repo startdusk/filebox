@@ -13,8 +13,10 @@ RUN cargo chef cook --release --recipe-path recipe.json
 # all layers should be cached.
 COPY . .
 
+
 # Build our project
-RUN cargo build --release --bin filebox
+RUN cargo build --release --bin filebox-server
+
 FROM debian:bullseye-slim AS runtime
 WORKDIR /app
 RUN apt-get update -y \
@@ -23,7 +25,8 @@ RUN apt-get update -y \
     && apt-get autoremove -y \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
-COPY --from=builder /app/target/release/filebox filebox
-COPY .env .env
+COPY --from=builder /app/target/release/filebox-server filebox-server
 
-ENTRYPOINT ["./filebox"]
+EXPOSE 8080
+
+ENTRYPOINT ["./filebox-server"]

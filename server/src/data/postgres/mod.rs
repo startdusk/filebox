@@ -4,6 +4,8 @@ use crate::models::filebox::{FileType, Filebox};
 
 pub mod filebox;
 
+pub use filebox::*;
+
 impl FromRow<'_, PgRow> for Filebox {
     fn from_row(row: &PgRow) -> Result<Self, sqlx::Error> {
         let id: i64 = row.get("id");
