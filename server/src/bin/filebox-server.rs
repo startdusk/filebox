@@ -49,7 +49,7 @@ async fn main() -> anyhow::Result<()> {
     let graceful_shutdown_timeout_sec: u64 = graceful_shutdown_timeout_sec.parse()
         .unwrap_or_else(|_| panic!("GRACEFUL_SHUTDOWN_TIMEOUT_SEC should be a u64 type but got {graceful_shutdown_timeout_sec}"));
     let db_pool = PgPoolOptions::new().connect(&database_url).await?;
-
+    sqlx::migrate!("./migrations").run(&db_pool).await?;
     let generator = ShortCodeGenerator::new_lowercase_alphanumeric(5);
 
     let redis_conn_addr = env::var("REDIS_CONN_ADDR").expect("REDIS_CONN_ADDR is required");

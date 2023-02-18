@@ -35,3 +35,16 @@ run:
 .PHONY: watch
 watch: fmt
 	@RUST_BACKTRACE=1 cargo watch -x run
+
+build-dev: clear-none-docker-image test
+	@docker-compose build 
+
+up-dev: test
+	@docker-compose up server
+
+down-dev:
+	@docker-compose down server
+
+clear-none-docker-image:
+	@docker rm $(docker ps -a -q) 
+	@docker rmi $(docker images -f "dangling=true" -q)

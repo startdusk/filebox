@@ -1,8 +1,9 @@
 use std::io;
 
 use actix_web::{http::StatusCode, HttpResponse, ResponseError};
-use serde::Serialize;
 use validator::ValidationErrors;
+
+use crate::api::ErrorResponse;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -53,6 +54,21 @@ impl Error {
             }
         }
     }
+
+    fn name(&self) -> String {
+        match self {
+            Error::ValidateArgsError(_) => "VALIDATE_ARGS_ERROR".to_string(),
+            Error::InvalidCode(_) => "INVALID_CODE".to_string(),
+            Error::InvalidFileType(_) => "INVALID_FILE_TYPE".to_string(),
+            Error::InputValidateError(_) => "INPUT_VALIDATE_ERROR".to_string(),
+            Error::NotFound => "NOT_FOUND".to_string(),
+            Error::IpAllowerError(_) => "IP_ALLOWER_ERROR".to_string(),
+            Error::IOError(_) => "IO_ERROR".to_string(),
+            Error::DbError(_) => "DB_ERROR".to_string(),
+            Error::Unknown => "UNKNOWN".to_string(),
+            Error::MultipartError(_) => "MULTIPART_ERROR".to_string(),
+        }
+    }
 }
 
 impl From<sqlx::Error> for Error {
@@ -63,11 +79,6 @@ impl From<sqlx::Error> for Error {
             _ => Error::DbError(e),
         }
     }
-}
-
-#[derive(Debug, Serialize)]
-pub struct ErrorResponse {
-    pub message: String,
 }
 
 impl ResponseError for Error {
@@ -88,6 +99,8 @@ impl ResponseError for Error {
     fn error_response(&self) -> actix_web::HttpResponse<actix_web::body::BoxBody> {
         HttpResponse::build(self.status_code()).json(ErrorResponse {
             message: self.error_response(),
+            code: self.status_code().as_u16(),
+            error: self.name(),
         })
     }
 }

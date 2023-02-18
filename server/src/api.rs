@@ -208,6 +208,8 @@ impl From<Filebox> for CreateFileboxResponse {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct ErrorResponse {
+    pub code: u16,
+    pub error: String,
     pub message: String,
 }
 
@@ -218,6 +220,6 @@ pub struct IpInfo {
 
 impl IpInfo {
     pub fn new() -> Self {
-        Self { count: 0 }
+        Self::default()
     }
 }

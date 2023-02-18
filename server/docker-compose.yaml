@@ -1,0 +1,27 @@
+version: '3'
+services: 
+  postgres:
+    image: postgres:14.5-alpine
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: password
+      TZ: 'GMT+8'
+      PGTZ: 'GMT+8'
+  redis:
+    image: redis:latest
+    restart: always
+    entrypoint: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    ports:
+      - 6379:6379
+  server:
+    build: .
+    links:
+      - postgres:postgres
+      - redis:redis
+    ports:
+      - 8888:8888
+    environment:
+      DATABASE_URL: 'postgres://postgres:password@postgres:5432/filebox?sslmode=disable'
+      DATABASE_TIMEOUT_MS: 10000
+    
