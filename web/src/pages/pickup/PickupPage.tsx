@@ -7,6 +7,7 @@ import styles from "./PickupPage.module.css";
 import { Filebox } from "../../service/request";
 import { assertIsAxiosError } from "../../filebox";
 import { Alert, AlertTitle } from "@mui/material";
+import { Alerts } from "../../components/alerts";
 
 interface PickupPageProps {}
 
@@ -81,31 +82,13 @@ export const PickupPage: React.FC<PickupPageProps> = () => {
           <Keyboard />
         </KeyContext.Provider>
         {reqestErr && (
-          <Alert icon={false} variant="filled" severity="error">
-            <AlertTitle>Error</AlertTitle>
-            提取码不存在 <strong>还有5次重试机会!</strong>
-          </Alert>
+          <Alerts title="Error" severity="error">提取码不存在 <strong>还有5次重试机会!</strong></Alerts>
         )}
         {inputMiss && (
-          <Alert icon={false} variant="filled" severity="warning">
-            <AlertTitle>Warn</AlertTitle>
-            请输入5位提取码
-          </Alert>
+          <Alerts title="Warn" severity="warning">请输入5位提取码</Alerts>
         )}
         {inputFull && (
-          <Alert
-            style={{
-              width: 200,
-              display: "flex",
-              justifyContent: "center",
-            }}
-            icon={false}
-            variant="filled"
-            severity="warning"
-          >
-            <AlertTitle>Warn</AlertTitle>
-            请按ENTER
-          </Alert>
+          <Alerts title="Info" severity="info">请按ENTER</Alerts>
         )}
       </div>
     </MainLayout>
