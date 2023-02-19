@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "../../components/input";
 import { Keyboard } from "../../components/keyboard";
 import { KeyContext } from "../../context";
@@ -60,6 +60,16 @@ export const PickupPage: React.FC<PickupPageProps> = () => {
       }
     }
   };
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) {
+      return;
+    }
+    handleKey(e.key);
+  }
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  })
 
   return (
     <MainLayout title="取件">

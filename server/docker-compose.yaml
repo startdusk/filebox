@@ -23,8 +23,6 @@ services:
       - redis:redis
     ports:
       - "8080:8080"
-    expose:
-      - 8080
     environment:
       DATABASE_URL: 'postgres://postgres:password@db/filebox'
       HTTP_SERVER_ADDR: 'localhost:8080'
