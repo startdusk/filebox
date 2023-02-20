@@ -6,7 +6,7 @@ import TabPanel from "@mui/lab/TabPanel";
 import { MainLayout } from "../../layouts/mainLayout";
 import styles from "./StorePage.module.css";
 import { useState } from "react";
-import { InputLabel, MenuItem, Select } from "@mui/material";
+import { Button, TextField } from "@mui/material";
 
 interface StorePageProps {}
 
@@ -27,19 +27,38 @@ export const StorePage: React.FC<StorePageProps> = () => {
                 onChange={handleChange}
                 aria-label="lab API tabs example"
               >
-                <Tab label="Item One" value="1" />
-                <Tab label="Item Two" value="2" />
-                <Tab label="Item Three" value="3" />
-                <InputLabel id="label">Age</InputLabel>
-                <Select labelId="label" id="select" value="20">
-                  <MenuItem value="10">Ten</MenuItem>
-                  <MenuItem value="20">Twenty</MenuItem>
-                </Select>
+                <Tab
+                  label={<div style={{ color: "white" }}>文件</div>}
+                  value="1"
+                />
+                <Tab
+                  label={<div style={{ color: "white" }}>文字</div>}
+                  value="2"
+                />
               </TabList>
             </Box>
-            <TabPanel value="1">Item One</TabPanel>
-            <TabPanel value="2">Item Two</TabPanel>
-            <TabPanel value="3">Item Three</TabPanel>
+            <TabPanel value="1">文件</TabPanel>
+            <TabPanel value="2">
+              <TextField
+                id="standard-multiline-flexible"
+                multiline
+                minRows={20}
+                maxRows={20}
+                fullWidth
+                sx={{
+                  background: "#888",
+                  color: "white",
+                }}
+                variant="standard"
+              />
+              <Button
+                sx={{ marginTop: "8px", background: "#888" }}
+                variant="contained"
+                // component="label"
+              >
+                寄 件
+              </Button>
+            </TabPanel>
           </TabContext>
         </div>
       </div>
