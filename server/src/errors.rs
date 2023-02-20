@@ -31,8 +31,8 @@ pub enum Error {
     #[error("No file box found by the given condition")]
     NotFound,
 
-    #[error("{0}")]
-    IpAllowerError(String),
+    #[error("Ip allow error")]
+    IpAllowerError(i32),
 
     #[error("Unknown error")]
     Unknown,
@@ -53,7 +53,9 @@ pub enum Error {
 impl Error {
     fn error_response(&self) -> String {
         match self {
-            Error::IpAllowerError(msg) => msg.to_string(),
+            Error::IpAllowerError(limit) => {
+                format!("今日文件口令错误已达 {limit} 次, 请明天再访问")
+            }
             Error::InvalidCode(msg) => msg.to_string(),
             Error::ValidateArgsError(_) | Error::InputValidateError(_) => {
                 "input validate error".to_string()

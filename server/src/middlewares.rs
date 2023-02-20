@@ -25,11 +25,7 @@ pub async fn redis_ip_allower_mw(
     let ip_allower = &cache_state.ip_allower;
     let addr = &cache_state.redis_actor;
     if !allow_ip(addr, &ip, ip_allower.limit).await? {
-        return Err(errors::Error::IpAllowerError(format!(
-            "今日文件口令错误已达{}次, 请明天再访问",
-            ip_allower.limit,
-        ))
-        .into());
+        return Err(errors::Error::IpAllowerError(ip_allower.limit).into());
     }
 
     let res = next.call(req).await?;
