@@ -1,8 +1,10 @@
 use std::cell::RefCell;
 use std::env;
 use std::io::Write;
+use std::sync::Arc;
 
 use actix_cors::Cors;
+use actix_redis::RedisActor;
 use actix_web::middleware;
 use actix_web::middleware::Logger;
 use actix_web::{http, web, App, HttpServer};
@@ -19,7 +21,7 @@ use server::state::{AppState, CacheState};
 use sqlx::postgres::PgPoolOptions;
 use tiny_id::ShortCodeGenerator;
 
-#[tokio::main]
+#[actix_rt::main]
 async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
     let env = env_logger::Env::new().default_filter_or("info");
@@ -49,7 +51,12 @@ async fn main() -> anyhow::Result<()> {
         .unwrap_or_else(|_| panic!("GRACEFUL_SHUTDOWN_TIMEOUT_SEC should be a u64 type but got {graceful_shutdown_timeout_sec}"));
     let db_pool = PgPoolOptions::new().connect(&database_url).await?;
     sqlx::migrate!("./migrations").run(&db_pool).await?;
-    let generator = ShortCodeGenerator::new_lowercase_alphanumeric(5);
+
+    let code_len = env::var("CODE_LEN").expect("CODE_LEN is required");
+    let code_len: usize = code_len
+        .parse()
+        .unwrap_or_else(|_| panic!("CODE_LEN should be a u8 type but got {code_len}"));
+    let generator = ShortCodeGenerator::new_lowercase_alphanumeric(code_len);
 
     let shared_data = web::Data::new(AppState {
         health_check_response: "I'm OK.".to_string(),
@@ -71,24 +78,23 @@ async fn main() -> anyhow::Result<()> {
     });
 
     let redis_conn_addr = env::var("REDIS_CONN_ADDR").expect("REDIS_CONN_ADDR is required");
-    let client = redis::Client::open(redis_conn_addr)?;
-    let redis_conn = client.get_connection()?;
     let cache_state = web::Data::new(CacheState {
-        ip_allower: tokio::sync::Mutex::new(RefCell::new(IpAllower::new(
-            redis_conn,
+        ip_allower: Arc::new(IpAllower::new(
             ip_visit_error_limit,
             ip_visit_error_duration_day,
-        ))),
+        )),
+        redis_actor: Arc::new(RedisActor::start(redis_conn_addr)),
     });
 
     let pool = db_pool.clone();
     let scheduler_handle =
         tokio::spawn(async move { start_clean_expired_filebox(&pool, upload_path.clone()).await });
 
+    let allowed_origin = env::var("ALLOWED_ORIGIN").expect("ALLOWED_ORIGIN is required");
     let app = move || {
         let cors = Cors::default()
-            .allowed_origin("http://localhost:5173")
-            .allowed_origin("http://127.0.0.1:5173")
+            .allowed_origin(&allowed_origin)
+            // .allowed_origin("http://127.0.0.1:5173")
             // .allowed_origin_fn(|origin, _req_head| {
             //     origin.as_bytes().starts_with(b"http://localhost")
             // })

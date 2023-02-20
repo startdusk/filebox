@@ -21,25 +21,21 @@ pub async fn redis_ip_allower_mw(
         Some(header) => String::from(header.to_str().unwrap()),
         None => peer_addr_ip,
     };
-    {
-        let ip_allower = cache_state.ip_allower.lock().await;
-        let mut ip_allower = ip_allower.borrow_mut();
-        let limit = ip_allower.limit;
-        if !allow_ip(&mut ip_allower.conn, ip.clone(), limit) {
-            return Err(errors::Error::IpAllowerError(format!(
-                "今日文件口令错误已达{}次, 请明天再访问",
-                limit
-            ))
-            .into());
-        }
-        drop(ip_allower);
+
+    let ip_allower = &cache_state.ip_allower;
+    let addr = &cache_state.redis_actor;
+    if !allow_ip(addr, &ip, ip_allower.limit).await? {
+        return Err(errors::Error::IpAllowerError(format!(
+            "今日文件口令错误已达{}次, 请明天再访问",
+            ip_allower.limit,
+        ))
+        .into());
     }
+
     let res = next.call(req).await?;
     if res.response().error().is_some() {
-        let ip_allower = cache_state.ip_allower.lock().await;
-        let mut ip_allower = ip_allower.borrow_mut();
-        let duration_day = ip_allower.duration_day;
-        add_ip(&mut ip_allower.conn, ip, duration_day);
+        add_ip(addr, &ip, ip_allower.ttl).await?
     }
+
     Ok(res)
 }

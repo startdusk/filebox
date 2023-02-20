@@ -34,6 +34,8 @@ actix-http = "3.3.0"
 redis = { version = "0.22.3", features = ["tokio-comp"] }
 serde_json = "1.0.93"
 anyhow = "1.0.64"
+actix-redis = "0.12.0"
+actix = "0.13.0"
 
 [dev-dependencies]
 sqlx-db-tester = "0.3.4"

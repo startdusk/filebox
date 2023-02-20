@@ -1,8 +1,8 @@
 use sqlx::postgres::PgPool;
-use std::cell::RefCell;
+use std::{cell::RefCell, sync::Arc};
 use tiny_id::ShortCodeGenerator;
 
-use crate::data::redis::IpAllower;
+use crate::{api::RedisActorAddr, data::redis::IpAllower};
 
 #[derive(Debug)]
 pub struct AppState {
@@ -17,5 +17,6 @@ pub struct AppState {
 }
 
 pub struct CacheState {
-    pub ip_allower: tokio::sync::Mutex<RefCell<IpAllower>>,
+    pub ip_allower: Arc<IpAllower>,
+    pub redis_actor: Arc<RedisActorAddr>,
 }

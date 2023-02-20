@@ -1,4 +1,6 @@
+use actix::Addr;
 use actix_easy_multipart::{tempfile::Tempfile, text::Text, MultipartForm};
+use actix_redis::RedisActor;
 use serde::{
     de::{self, Unexpected},
     Deserialize, Serialize,
@@ -126,7 +128,7 @@ impl Serialize for FileboxFileType {
     }
 }
 
-// 实现Deserialize参考: https://damad.be/joost/blog/rust-serde-deserialization-of-an-enum-variant.html
+// https://damad.be/joost/blog/rust-serde-deserialization-of-an-enum-variant.html
 impl<'de> Deserialize<'de> for FileboxFileType {
     fn deserialize<D>(d: D) -> Result<Self, D::Error>
     where
@@ -216,10 +218,13 @@ pub struct ErrorResponse {
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct IpInfo {
     pub count: i32,
+    // pub per_day_limit_of_visit: i32,
 }
 
 impl IpInfo {
     pub fn new() -> Self {
-        Self::default()
+        Self { count: 1 }
     }
 }
+
+pub type RedisActorAddr = Addr<RedisActor>;

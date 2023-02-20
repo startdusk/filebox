@@ -1,4 +1,4 @@
-use std::io;
+use std::{io, string};
 
 use actix_web::{http::StatusCode, HttpResponse, ResponseError};
 use validator::ValidationErrors;
@@ -36,6 +36,18 @@ pub enum Error {
 
     #[error("Unknown error")]
     Unknown,
+
+    #[error("Redis error")]
+    RedisError(#[from] anyhow::Error),
+
+    #[error("Redis send command error")]
+    RedisSendCommandError(String),
+
+    #[error("Deserialize json error")]
+    DeserializeJsonError(#[from] serde_json::Error),
+
+    #[error("Parse get reids value to string error")]
+    ParseGetRedisValue(#[from] string::FromUtf8Error),
 }
 
 impl Error {
@@ -49,9 +61,14 @@ impl Error {
 
             Error::InvalidFileType(err) => format!("invalid file type: {err}"),
             Error::NotFound => "not found".to_string(),
-            Error::IOError(_) | Error::MultipartError(_) | Error::DbError(_) | Error::Unknown => {
-                "internal server error".to_string()
-            }
+            Error::IOError(_)
+            | Error::MultipartError(_)
+            | Error::DeserializeJsonError(_)
+            | Error::RedisError(_)
+            | Error::RedisSendCommandError(_)
+            | Error::DbError(_)
+            | Error::ParseGetRedisValue(_)
+            | Error::Unknown => "internal server error".to_string(),
         }
     }
 
@@ -67,6 +84,10 @@ impl Error {
             Error::DbError(_) => "DB_ERROR".to_string(),
             Error::Unknown => "UNKNOWN".to_string(),
             Error::MultipartError(_) => "MULTIPART_ERROR".to_string(),
+            Error::RedisError(_) => "REDIS_ERROR".to_string(),
+            Error::DeserializeJsonError(_) => "DESERIALIZE_JSON_ERROR".to_string(),
+            Error::ParseGetRedisValue(_) => "PARSE_GET_REDIS_VALUE".to_string(),
+            Error::RedisSendCommandError(_) => "REDIS_SEND_COMMAND_ERROR".to_string(),
         }
     }
 }
@@ -90,9 +111,14 @@ impl ResponseError for Error {
             | Error::InputValidateError(_) => StatusCode::BAD_REQUEST,
             Error::NotFound => StatusCode::NOT_FOUND,
             Error::IpAllowerError(_) => StatusCode::FORBIDDEN,
-            Error::IOError(_) | Error::DbError(_) | Error::Unknown | Error::MultipartError(_) => {
-                StatusCode::INTERNAL_SERVER_ERROR
-            }
+            Error::IOError(_)
+            | Error::DbError(_)
+            | Error::Unknown
+            | Error::DeserializeJsonError(_)
+            | Error::MultipartError(_)
+            | Error::ParseGetRedisValue(_)
+            | Error::RedisSendCommandError(_)
+            | Error::RedisError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 

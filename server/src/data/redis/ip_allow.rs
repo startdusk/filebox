@@ -1,66 +1,86 @@
+use actix::Addr;
+use actix_redis::{resp_array, Command, RedisActor, RespValue};
 use chrono::{Duration, Local};
 
-use crate::api::IpInfo;
-use redis::Connection;
+use crate::{api::IpInfo, errors};
 
 pub struct IpAllower {
-    pub conn: Connection,
     pub limit: i32,
-    pub duration_day: i64,
+    pub ttl: i64,
 }
 
 impl IpAllower {
-    pub fn new(conn: Connection, limit: i32, duration_day: i64) -> Self {
-        IpAllower {
-            conn,
-            limit,
-            duration_day,
-        }
+    pub fn new(limit: i32, ttl: i64) -> Self {
+        Self { limit, ttl }
     }
 }
 
-pub fn allow_ip(conn: &mut Connection, ip: String, limit: i32) -> bool {
-    let (ip_info, get_it) = get(conn, ip);
+pub async fn allow_ip(
+    addr: &Addr<RedisActor>,
+    ip: &str,
+    limit: i32,
+) -> Result<bool, errors::Error> {
+    let (ip_info, get_it) = get(addr, ip).await?;
     if !get_it {
-        return true;
+        return Ok(true);
     }
 
     if ip_info.count >= limit {
-        return false;
+        return Ok(false);
     }
-    true
+    Ok(true)
 }
 
-pub fn add_ip(conn: &mut Connection, ip: String, duration_day: i64) -> bool {
-    let (mut ip_info, get_it) = get(conn, ip.clone());
+pub async fn add_ip(addr: &Addr<RedisActor>, ip: &str, ttl: i64) -> Result<(), errors::Error> {
+    let (mut ip_info, get_it) = get(addr, ip).await?;
     if get_it {
         ip_info.count += 1;
     }
 
+    // SAFTEY: we ensure the ip_info implementation of Serialize
     let value = serde_json::to_string(&ip_info).unwrap();
-    redis::cmd("SETEX")
-        .arg(ip)
-        .arg(duration(duration_day))
-        .arg(value)
-        .query(conn)
-        .unwrap()
+    let ttl = get_ttl(ttl);
+    let cmd = Command(resp_array!["SETEX", ip, ttl.to_string(), value]);
+    if let RespValue::Error(msg) = addr
+        .send(cmd)
+        .await
+        .map_err(Into::into)
+        .map_err(errors::Error::RedisError)?
+        .map_err(Into::into)
+        .map_err(errors::Error::RedisError)?
+    {
+        return Err(errors::Error::RedisSendCommandError(msg));
+    };
+
+    Ok(())
 }
 
-fn get(conn: &mut Connection, ip: String) -> (IpInfo, bool) {
-    match redis::cmd("GET").arg(ip).query(conn) {
-        Ok(ip_info_json) => {
-            let ip_info_json: String = ip_info_json;
-            let ip_info: IpInfo = ip_info_json.try_into().unwrap();
-            (ip_info, true)
+async fn get(addr: &Addr<RedisActor>, ip: &str) -> Result<(IpInfo, bool), errors::Error> {
+    let cmd = Command(resp_array!["GET", ip]);
+    let val = addr
+        .send(cmd)
+        .await
+        .map_err(Into::into)
+        .map_err(errors::Error::RedisError)?
+        .map_err(Into::into)
+        .map_err(errors::Error::RedisError)?;
+    match val {
+        RespValue::BulkString(ip_info_vec) => {
+            let ip_info_json: String = String::from_utf8(ip_info_vec)?;
+            let ip_info: IpInfo = ip_info_json
+                .try_into()
+                .map_err(errors::Error::DeserializeJsonError)?;
+
+            Ok((ip_info, true))
         }
-        Err(_) => (IpInfo::default(), false),
+        _ => Ok((IpInfo::default(), false)),
     }
 }
 
-fn duration(duration_day: i64) -> i64 {
+fn get_ttl(ttl: i64) -> i64 {
     let now = Local::now();
 
-    let tomorrow_midnight = (now + Duration::days(duration_day))
+    let tomorrow_midnight = (now + Duration::days(ttl))
         .date_naive()
         .and_hms_opt(0, 0, 0)
         .unwrap();
