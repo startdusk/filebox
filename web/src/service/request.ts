@@ -7,11 +7,20 @@ export namespace Filebox {
   export interface FileboxData {
     name: string;
     duration_day: number;
-    text: string;
+    text?: string;
+    file?: Blob;
   }
 
   export async function addFilebox(filebox: FileboxData) {
-    const { data } = await axios.post(`${domain}/filebox`, filebox);
+    const formData = new FormData();
+    for (const [name, value] of Object.entries(filebox)) {
+      formData.append(name, value);
+    }
+    const { data } = await axios.post(`${domain}/filebox`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
     return camelcaseKeys(data, { deep: true });
   }
 

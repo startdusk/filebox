@@ -66,11 +66,11 @@ export const PickupPage: React.FC<PickupPageProps> = () => {
       return;
     }
     handleKey(e.key);
-  }
+  };
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  })
+  });
 
   return (
     <MainLayout title="取件">
@@ -82,13 +82,19 @@ export const PickupPage: React.FC<PickupPageProps> = () => {
           <Keyboard />
         </KeyContext.Provider>
         {reqestErr && (
-          <Alerts title="Error" severity="error">提取码不存在 <strong>还有5次重试机会!</strong></Alerts>
+          <Alerts title="Error" severity="error">
+            口令错误 <strong>还有5次重试机会!</strong>
+          </Alerts>
         )}
         {inputMiss && (
-          <Alerts title="Warn" severity="warning">请输入5位提取码</Alerts>
+          <Alerts title="Warn" severity="warning">
+            请输入5位文件口令
+          </Alerts>
         )}
         {inputFull && (
-          <Alerts title="Info" severity="info">请按ENTER</Alerts>
+          <Alerts title="Info" severity="info">
+            请按ENTER
+          </Alerts>
         )}
       </div>
     </MainLayout>
