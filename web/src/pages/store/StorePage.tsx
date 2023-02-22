@@ -6,7 +6,7 @@ import TabPanel from "@mui/lab/TabPanel";
 import { MainLayout } from "../../layouts/mainLayout";
 import styles from "./StorePage.module.css";
 import { useState } from "react";
-import { Button, Stack, TextField } from "@mui/material";
+import { Button, FormControl, Stack, TextField } from "@mui/material";
 
 import { Filebox } from "../../service/request";
 
@@ -17,17 +17,20 @@ export const StorePage: React.FC<StorePageProps> = () => {
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
 
-  const handleChange = (event: React.SyntheticEvent, newValue: string) => {
+  const [storeDay, setStoreDay] = useState(1);
+
+  const handleChange = (_event: React.SyntheticEvent, newValue: string) => {
     setValue(newValue);
   };
 
   const handleClick = () => {
     const filebox: Filebox.FileboxData = {
       name: title,
-      duration_day: 7,
+      duration_day: storeDay,
+      file_type: value === "1" ? 1 : 2,
       text: text,
     };
-    console.log(filebox);
+
     Filebox.addFilebox(filebox).then((res) => {
       console.log(res);
     });
@@ -36,67 +39,117 @@ export const StorePage: React.FC<StorePageProps> = () => {
   return (
     <MainLayout title="寄件">
       <div className={styles.container}>
-        <div className={styles["input-madal"]}>
-          <Stack>
-            <TextField
-              sx={{
-                color: "f5f5f5",
-                background: "f5f5f5",
-                border: "1px solid #444",
-                input: {
-                  color: "white",
-                },
-              }}
-              label="标题"
-              variant="outlined"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </Stack>
-          <TabContext value={value}>
-            <Box sx={{ borderBottom: 1, borderColor: "#444" }}>
-              <TabList onChange={handleChange}>
-                <Tab
-                  label={<div style={{ color: "white" }}>文件</div>}
-                  value="1"
-                />
-                <Tab
-                  label={<div style={{ color: "white" }}>文字</div>}
-                  value="2"
-                />
-              </TabList>
-            </Box>
-            <TabPanel value="1">文件</TabPanel>
-            <TabPanel value="2">
+        <FormControl>
+          <div className={styles["input-madal"]}>
+            <Stack>
               <TextField
-                id="standard-multiline-flexible"
-                multiline
-                minRows={20}
-                maxRows={20}
-                fullWidth
+                placeholder="请输入标题"
                 sx={{
-                  background: "#f5f5f5",
-                  borderRadius: "6px",
+                  color: "f5f5f5",
+                  background: "f5f5f5",
+                  border: "1px solid #444",
+                  input: {
+                    color: "white",
+                  },
                 }}
-                variant="standard"
-                InputProps={{
-                  disableUnderline: true,
-                }}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
+                label="标题"
+                variant="outlined"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                autoFocus
               />
-              <Button
-                sx={{ marginTop: "8px", background: "#888", width: "200px" }}
-                variant="contained"
-                onClick={() => {
-                  handleClick();
+            </Stack>
+            <TabContext value={value}>
+              <Box
+                sx={{
+                  borderBottom: 1,
+                  borderColor: "#444",
+                  display: "flex",
+                  justifyContent: "space-between",
                 }}
               >
-                寄 件
-              </Button>
-            </TabPanel>
-          </TabContext>
-        </div>
+                <Box>
+                  <TabList onChange={handleChange}>
+                    <Tab
+                      label={<div style={{ color: "white" }}>文字</div>}
+                      value="1"
+                    />
+                    <Tab
+                      label={<div style={{ color: "white" }}>文件</div>}
+                      value="2"
+                    />
+                  </TabList>
+                </Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    marginRight: "30px",
+                  }}
+                >
+                  存放时间:
+                  <TextField
+                    value={storeDay}
+                    onChange={(e) => {
+                      if (e.target.value === "") {
+                        setStoreDay(0);
+                      } else if (e.target.value) {
+                        let value = parseInt(e.target.value);
+                        if (value > 30) {
+                          value = 30;
+                        }
+                        setStoreDay(value);
+                      }
+                    }}
+                    size="small"
+                    placeholder="单位/天"
+                    sx={{
+                      width: "50px",
+                      marginRight: "2px",
+                      input: {
+                        color: "white",
+                      },
+                    }}
+                    inputProps={{
+                      inputMode: "numeric",
+                      pattern: "[0-9]*",
+                    }}
+                  />
+                  天
+                </Box>
+              </Box>
+              <TabPanel value="1">
+                <TextField
+                  id="standard-multiline-flexible"
+                  multiline
+                  minRows={20}
+                  maxRows={20}
+                  fullWidth
+                  sx={{
+                    background: "#f5f5f5",
+                    borderRadius: "6px",
+                  }}
+                  variant="standard"
+                  InputProps={{
+                    disableUnderline: true,
+                  }}
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                />
+                <Button
+                  sx={{ marginTop: "8px", background: "#888", width: "200px" }}
+                  variant="contained"
+                  onClick={() => {
+                    handleClick();
+                  }}
+                >
+                  寄 件
+                </Button>
+              </TabPanel>
+              <TabPanel value="2">文件</TabPanel>
+            </TabContext>
+          </div>
+        </FormControl>
       </div>
     </MainLayout>
   );

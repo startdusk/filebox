@@ -7,6 +7,7 @@ export namespace Filebox {
   export interface FileboxData {
     name: string;
     duration_day: number;
+    file_type: 1 | 2; // 1=text, 2=file
     text?: string;
     file?: Blob;
   }

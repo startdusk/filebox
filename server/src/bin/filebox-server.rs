@@ -117,7 +117,7 @@ async fn main() -> anyhow::Result<()> {
             .service(
                 web::scope("/v1/filebox")
                     .wrap(from_fn(redis_ip_allower_mw))
-                    .route("/", web::post().to(add_new_filebox))
+                    .route("", web::post().to(add_new_filebox))
                     .service(
                         web::resource("/{code}")
                             .route(web::get().to(get_filebox_by_code))
