@@ -9,6 +9,8 @@ import { useState } from "react";
 import { Button, FormControl, Stack, TextField } from "@mui/material";
 
 import { Filebox } from "../../service/request";
+import { DropzoneArea } from "material-ui-dropzone";
+import { MaxFileSize } from "../../filebox";
 
 interface StorePageProps {}
 
@@ -146,7 +148,25 @@ export const StorePage: React.FC<StorePageProps> = () => {
                   寄 件
                 </Button>
               </TabPanel>
-              <TabPanel value="2">文件</TabPanel>
+              <TabPanel value="2">
+                <div className={styles.dropzone}>
+                  <DropzoneArea
+                    filesLimit={1}
+                    maxFileSize={MaxFileSize}
+                    onChange={(files) => console.log("Files:", files)}
+                    onDelete={(file) => console.log("delete:", file)}
+                  />
+                </div>
+                <Button
+                  sx={{ marginTop: "8px", background: "#888", width: "200px" }}
+                  variant="contained"
+                  onClick={() => {
+                    handleClick();
+                  }}
+                >
+                  寄 件
+                </Button>
+              </TabPanel>
             </TabContext>
           </div>
         </FormControl>

@@ -18,3 +18,5 @@ export function assertIsAxiosError(err: any): asserts err is AxiosError {
   if (!(err instanceof AxiosError))
     throw new Error(`Not an axios error: ${err}`);
 }
+
+export const MaxFileSize = 5 * 1024 * 1024;

@@ -19,14 +19,15 @@ RUN cargo build --release --bin filebox-server
 
 FROM debian:bullseye-slim AS runtime
 WORKDIR /app
-RUN apt-get update -y \
-    && apt-get install -y --no-install-recommends openssl ca-certificates \
-    # Clean up
-    && apt-get autoremove -y \
-    && apt-get clean -y \
-    && rm -rf /var/lib/apt/lists/*
+# RUN apt-get update -y \
+#     && apt-get install -y --no-install-recommends openssl ca-certificates \
+#     # Clean up
+#     && apt-get autoremove -y \
+#     && apt-get clean -y \
+#     && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/target/release/filebox-server filebox-server
 
-EXPOSE 8080
+EXPOSE 8888
 
-ENTRYPOINT ["./filebox-server"]
+ENTRYPOINT ["/app/filebox-server"]
+
