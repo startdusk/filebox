@@ -1,16 +1,28 @@
-import Box from "@mui/material/Box";
-import Tab from "@mui/material/Tab";
 import TabContext from "@mui/lab/TabContext";
 import TabList from "@mui/lab/TabList";
 import TabPanel from "@mui/lab/TabPanel";
 import { MainLayout } from "../../layouts/mainLayout";
 import styles from "./StorePage.module.css";
 import { useState } from "react";
-import { Button, FormControl, Stack, TextField } from "@mui/material";
+import {
+  Box,
+  Tab,
+  Button,
+  FormControl,
+  Stack,
+  TextField,
+  DialogContent,
+  Typography,
+  DialogActions,
+  IconButton,
+} from "@mui/material";
 
 import { Filebox } from "../../service/request";
 import { DropzoneArea } from "material-ui-dropzone";
 import { MaxFileSize } from "../../filebox";
+import { DialogHeader, FileboxDialog } from "../../components/dialog";
+import CopyAllIcon from "@mui/icons-material/CopyAll";
+import Tooltip from "@mui/material/Tooltip";
 
 interface StorePageProps {}
 
@@ -20,10 +32,24 @@ export const StorePage: React.FC<StorePageProps> = () => {
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | undefined>(undefined);
   const [storeDay, setStoreDay] = useState(1);
+  const [open, setOpen] = useState(false);
 
+  const [clickTitle, setClickTitle] = useState("Click to copy");
+
+  const handleClose = () => {
+    setOpen(false);
+  };
+  const resetForm = () => {
+    setFile(undefined);
+    setTitle("");
+    setText("");
+    setStoreDay(1);
+  };
   const handleChange = (_event: React.SyntheticEvent, newValue: string) => {
     setValue(newValue);
   };
+
+  const [filecode, setFilecode] = useState("");
 
   const handleClick = () => {
     const filebox: Filebox.FileboxData = {
@@ -34,8 +60,14 @@ export const StorePage: React.FC<StorePageProps> = () => {
       file: file,
     };
 
+    const openDialog = (filecode: string) => {
+      setOpen(true);
+      setFilecode(filecode);
+    };
+
     Filebox.addFilebox(filebox).then((res) => {
-      console.log(res);
+      openDialog(res.code);
+      resetForm();
     });
   };
 
@@ -174,6 +206,36 @@ export const StorePage: React.FC<StorePageProps> = () => {
             </TabContext>
           </div>
         </FormControl>
+
+        <FileboxDialog open={open}>
+          <DialogHeader id="store-dialog" onClose={handleClose}>
+            寄件成功
+          </DialogHeader>
+          <DialogContent sx={{ minWidth: "300px" }} dividers>
+            <Typography gutterBottom>
+              有效期为: <strong>{storeDay}</strong> 天, 取件码为:
+              <strong>{filecode}</strong>
+              <Tooltip title={clickTitle}>
+                <IconButton
+                  color="primary"
+                  aria-label="copy"
+                  component="label"
+                  onClick={() => {
+                    setClickTitle("Copied");
+                    navigator.clipboard.writeText(filecode);
+                  }}
+                >
+                  <CopyAllIcon />
+                </IconButton>
+              </Tooltip>
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button autoFocus onClick={handleClose}>
+              确 定
+            </Button>
+          </DialogActions>
+        </FileboxDialog>
       </div>
     </MainLayout>
   );
