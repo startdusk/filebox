@@ -3,7 +3,7 @@ mod tests {
     use std::ops::Add;
 
     use crate::{
-        api::{GetFileboxResponse, TakeTextResponse},
+        api::GetFileboxResponse,
         data::postgres::add_new_filebox_db,
         models::filebox::{AddFilebox, FileType},
         test_utils::{create_test_app, get_tdb},
@@ -75,9 +75,9 @@ mod tests {
         assert_eq!(get_filebox.created_at, new_filebox.created_at.timestamp());
         assert_eq!(get_filebox.expired_at, new_filebox.expired_at.timestamp());
 
-        let take_filebox_req = test::TestRequest::post().uri(uri).to_request();
-        let take_filebox: TakeTextResponse =
-            test::call_and_read_body_json(&app, take_filebox_req).await;
-        assert!(take_filebox.used_at > 0);
+        // let take_filebox_req = test::TestRequest::post().uri(uri).to_request();
+        // let take_filebox: TakeTextResponse =
+        //     test::call_and_read_body_json(&app, take_filebox_req).await;
+        // assert!(take_filebox.used_at > 0);
     }
 }

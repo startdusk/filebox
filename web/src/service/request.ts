@@ -30,7 +30,24 @@ export namespace Filebox {
     return camelcaseKeys(data, { deep: true });
   }
 
-  export async function takeFilebox(code: string) {
-    await axios.post(`${domain}/filebox/${code}`);
+  export async function takeFilebox(code: string, filename: string) {
+    const res = await axios.post(
+      `${domain}/filebox/${code}`,
+      {},
+      { responseType: "blob" }
+    );
+    fileDownload(res, filename);
+  }
+
+  function fileDownload(res: any, filename: string) {
+    const blob = new Blob([res.data]);
+    const elink = document.createElement("a");
+    elink.download = filename;
+    elink.style.display = "none";
+    elink.href = URL.createObjectURL(blob);
+    document.body.appendChild(elink);
+    elink.click();
+    URL.revokeObjectURL(elink.href);
+    document.body.removeChild(elink);
   }
 }

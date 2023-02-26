@@ -213,7 +213,7 @@ export const StorePage: React.FC<StorePageProps> = () => {
           </DialogHeader>
           <DialogContent sx={{ minWidth: "300px" }} dividers>
             <Typography gutterBottom>
-              有效期为: <strong>{storeDay}</strong> 天, 取件码为:
+              有效期为: <strong>{storeDay}</strong> 天, 取件码为:{" "}
               <strong>{filecode}</strong>
               <Tooltip title={clickTitle}>
                 <IconButton

@@ -6,18 +6,43 @@ import { MainLayout } from "../../layouts/mainLayout";
 import styles from "./PickupPage.module.css";
 import { Filebox } from "../../service/request";
 import { assertIsAxiosError } from "../../filebox";
-import { Alert, AlertTitle } from "@mui/material";
+import {
+  Button,
+  DialogActions,
+  DialogContent,
+  Typography,
+} from "@mui/material";
 import { Alerts } from "../../components/alerts";
+import { DialogHeader, FileboxDialog } from "../../components/dialog";
 
 interface PickupPageProps {}
 
 export const PickupPage: React.FC<PickupPageProps> = () => {
-  // TODO: I don't like this code style lol
   const [currentAttempt, setCurrentAttempt] = useState("");
   const [shaking, setShaking] = useState(false);
   const [inputMiss, setInputMiss] = useState(false);
   const [inputFull, setInputFull] = useState(false);
   const [reqestErr, setReqestErr] = useState(false);
+  const [filecode, setFilecode] = useState("");
+
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const openDialog = (filecode: string, filename: string) => {
+    setOpen(true);
+    setFilecode(filecode);
+    setText(filename);
+  };
+  const handleClose = () => {
+    setOpen(false);
+  };
+
+  const handlePickup = async () => {
+    handleClose();
+    await Filebox.takeFilebox(filecode, text);
+    setCurrentAttempt("");
+    setOpen(false);
+  };
+
   const handleKey = async (key: string) => {
     const letter = key.toLowerCase();
     if (letter === "enter") {
@@ -32,8 +57,8 @@ export const PickupPage: React.FC<PickupPageProps> = () => {
       }
 
       try {
-        const data = await Filebox.getFilebox(currentAttempt);
-        console.log(data);
+        const res = await Filebox.getFilebox(currentAttempt);
+        openDialog(currentAttempt, res.name);
       } catch (err) {
         assertIsAxiosError(err);
         if (err.response?.status === 404) {
@@ -97,6 +122,20 @@ export const PickupPage: React.FC<PickupPageProps> = () => {
           </Alerts>
         )}
       </div>
+
+      <FileboxDialog open={open}>
+        <DialogHeader id="store-dialog" onClose={handleClose}>
+          取件成功
+        </DialogHeader>
+        <DialogContent sx={{ minWidth: "300px" }} dividers>
+          <Typography gutterBottom>{text}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button autoFocus onClick={handlePickup}>
+            打 开
+          </Button>
+        </DialogActions>
+      </FileboxDialog>
     </MainLayout>
   );
 };

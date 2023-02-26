@@ -4,7 +4,10 @@ use std::path::Path;
 
 use actix_easy_multipart::MultipartForm;
 use actix_files::NamedFile;
-use actix_web::http::header::ContentDisposition;
+use actix_http::header::{Charset, ExtendedValue};
+use actix_http::{body, header};
+use actix_web::http::header::{ContentDisposition, DispositionParam, DispositionType};
+use actix_web::web::Bytes;
 use actix_web::{web, HttpRequest, HttpResponse};
 use chrono::{Duration, Local};
 use uuid::Uuid;
@@ -99,7 +102,23 @@ pub async fn take_filebox_by_code(
     match filebox.file_type {
         FileType::Text => {
             let resp: TakeTextResponse = filebox.into();
-            Ok(HttpResponse::Ok().json(resp))
+            let filename = format!("{}.txt", resp.name);
+            let cd = ContentDisposition {
+                disposition: DispositionType::Attachment,
+                parameters: vec![DispositionParam::FilenameExt(ExtendedValue {
+                    charset: Charset::Iso_8859_1, // The character set for the bytes of the filename
+                    language_tag: None, // The optional language tag (see `language-tag` crate)
+                    value: filename.into(), // the actual bytes of the filename
+                })],
+            };
+
+            let stream = body::BoxBody::new(Bytes::from(resp.text));
+
+            let mut resp = HttpResponse::Ok();
+            let resp = resp
+                .append_header((header::CONTENT_DISPOSITION, cd))
+                .message_body(stream)?;
+            Ok(resp)
         }
         FileType::File => {
             let file_name = Path::new(&filebox.file_path)

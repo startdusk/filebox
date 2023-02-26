@@ -40,6 +40,9 @@ pub enum Error {
     #[error("Redis error")]
     RedisError(#[from] anyhow::Error),
 
+    #[error("Actix web error: {0}")]
+    ActixWebError(#[from] actix_web::Error),
+
     #[error("Redis send command error")]
     RedisSendCommandError(String),
 
@@ -63,7 +66,8 @@ impl Error {
 
             Error::InvalidFileType(err) => format!("invalid file type: {err}"),
             Error::NotFound => "not found".to_string(),
-            Error::IOError(_)
+            Error::ActixWebError(_)
+            | Error::IOError(_)
             | Error::MultipartError(_)
             | Error::DeserializeJsonError(_)
             | Error::RedisError(_)
@@ -90,6 +94,7 @@ impl Error {
             Error::DeserializeJsonError(_) => "DESERIALIZE_JSON_ERROR".to_string(),
             Error::ParseGetRedisValue(_) => "PARSE_GET_REDIS_VALUE".to_string(),
             Error::RedisSendCommandError(_) => "REDIS_SEND_COMMAND_ERROR".to_string(),
+            Error::ActixWebError(_) => "ACTIX_WEB_ERROR".to_string(),
         }
     }
 }
@@ -113,7 +118,8 @@ impl ResponseError for Error {
             | Error::InputValidateError(_) => StatusCode::BAD_REQUEST,
             Error::NotFound => StatusCode::NOT_FOUND,
             Error::IpAllowerError(_) => StatusCode::FORBIDDEN,
-            Error::IOError(_)
+            Error::ActixWebError(_)
+            | Error::IOError(_)
             | Error::DbError(_)
             | Error::Unknown
             | Error::DeserializeJsonError(_)
