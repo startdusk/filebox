@@ -18,7 +18,7 @@ export const StorePage: React.FC<StorePageProps> = () => {
   const [value, setValue] = useState("1");
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
-
+  const [file, setFile] = useState<File | undefined>(undefined);
   const [storeDay, setStoreDay] = useState(1);
 
   const handleChange = (_event: React.SyntheticEvent, newValue: string) => {
@@ -31,6 +31,7 @@ export const StorePage: React.FC<StorePageProps> = () => {
       duration_day: storeDay,
       file_type: value === "1" ? 1 : 2,
       text: text,
+      file: file,
     };
 
     Filebox.addFilebox(filebox).then((res) => {
@@ -73,11 +74,11 @@ export const StorePage: React.FC<StorePageProps> = () => {
                 <Box>
                   <TabList onChange={handleChange}>
                     <Tab
-                      label={<div style={{ color: "white" }}>文字</div>}
+                      label={<div style={{ color: "white" }}>文 件</div>}
                       value="1"
                     />
                     <Tab
-                      label={<div style={{ color: "white" }}>文件</div>}
+                      label={<div style={{ color: "white" }}>文 字</div>}
                       value="2"
                     />
                   </TabList>
@@ -121,6 +122,28 @@ export const StorePage: React.FC<StorePageProps> = () => {
                 </Box>
               </Box>
               <TabPanel value="1">
+                <div className={styles.dropzone}>
+                  <DropzoneArea
+                    filesLimit={1}
+                    maxFileSize={MaxFileSize}
+                    onChange={(files) => {
+                      const uploadFile = files[0];
+                      setFile(uploadFile);
+                    }}
+                    onDelete={(_) => setFile(undefined)}
+                  />
+                </div>
+                <Button
+                  sx={{ marginTop: "8px", background: "#888", width: "200px" }}
+                  variant="contained"
+                  onClick={() => {
+                    handleClick();
+                  }}
+                >
+                  寄 件
+                </Button>
+              </TabPanel>
+              <TabPanel value="2">
                 <TextField
                   id="standard-multiline-flexible"
                   multiline
@@ -138,25 +161,6 @@ export const StorePage: React.FC<StorePageProps> = () => {
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                 />
-                <Button
-                  sx={{ marginTop: "8px", background: "#888", width: "200px" }}
-                  variant="contained"
-                  onClick={() => {
-                    handleClick();
-                  }}
-                >
-                  寄 件
-                </Button>
-              </TabPanel>
-              <TabPanel value="2">
-                <div className={styles.dropzone}>
-                  <DropzoneArea
-                    filesLimit={1}
-                    maxFileSize={MaxFileSize}
-                    onChange={(files) => console.log("Files:", files)}
-                    onDelete={(file) => console.log("delete:", file)}
-                  />
-                </div>
                 <Button
                   sx={{ marginTop: "8px", background: "#888", width: "200px" }}
                   variant="contained"

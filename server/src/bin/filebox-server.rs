@@ -94,10 +94,9 @@ async fn main() -> anyhow::Result<()> {
     let app = move || {
         let cors = Cors::default()
             .allowed_origin(&allowed_origin)
-            // .allowed_origin("http://localhost:5173")
-            // .allowed_origin_fn(|origin, _req_head| {
-            //     origin.as_bytes().starts_with(b"http://localhost")
-            // })
+            .allowed_origin_fn(|origin, _req_head| {
+                origin.as_bytes().starts_with(b"http://localhost")
+            })
             .allowed_methods(vec!["GET", "POST"])
             .allowed_headers(vec![
                 http::header::AUTHORIZATION,

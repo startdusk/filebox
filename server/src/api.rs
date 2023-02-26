@@ -99,8 +99,8 @@ pub struct CreateFileboxResponse {
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum FileboxFileType {
-    Text = 1,
-    File = 2,
+    File = 1,
+    Text = 2,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -112,8 +112,8 @@ pub struct HealthCheckResponse {
 impl From<&FileboxFileType> for u8 {
     fn from(v: &FileboxFileType) -> Self {
         match v {
-            FileboxFileType::Text => 1,
-            FileboxFileType::File => 2,
+            FileboxFileType::File => 1,
+            FileboxFileType::Text => 2,
         }
     }
 }
@@ -136,8 +136,8 @@ impl<'de> Deserialize<'de> for FileboxFileType {
     {
         let num = u8::deserialize(d)?;
         match num {
-            1 => Ok(FileboxFileType::Text),
-            2 => Ok(FileboxFileType::File),
+            1 => Ok(FileboxFileType::File),
+            2 => Ok(FileboxFileType::Text),
             // TODO: 修改为指定的json序列化错误
             // 目前提示为：Json deserialize error: invalid value: integer `3`, expected 1 or 2 at line 3 column 1
             _ => Err(de::Error::invalid_value(

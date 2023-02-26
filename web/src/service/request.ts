@@ -7,9 +7,9 @@ export namespace Filebox {
   export interface FileboxData {
     name: string;
     duration_day: number;
-    file_type: 1 | 2; // 1=text, 2=file
+    file_type: 1 | 2; // 1=file, 2=text
     text?: string;
-    file?: Blob;
+    file?: File;
   }
 
   export async function addFilebox(filebox: FileboxData) {
