@@ -102,21 +102,21 @@ pub async fn take_filebox_by_code(
     match filebox.file_type {
         FileType::Text => {
             let resp: TakeTextResponse = filebox.into();
-            let filename = format!("{}.txt", resp.name);
+            let file_name = format!("{}.txt", resp.name);
             let cd = ContentDisposition {
-                disposition: DispositionType::Attachment,
                 parameters: vec![DispositionParam::FilenameExt(ExtendedValue {
-                    charset: Charset::Iso_8859_1, // The character set for the bytes of the filename
-                    language_tag: None, // The optional language tag (see `language-tag` crate)
-                    value: filename.into(), // the actual bytes of the filename
+                    charset: Charset::Gb2312,
+                    language_tag: None,
+                    value: file_name.into(),
                 })],
+                disposition: DispositionType::Attachment,
             };
-
             let stream = body::BoxBody::new(Bytes::from(resp.text));
 
             let mut resp = HttpResponse::Ok();
             let resp = resp
                 .append_header((header::CONTENT_DISPOSITION, cd))
+                .append_header((header::ACCESS_CONTROL_EXPOSE_HEADERS, "Content-Disposition"))
                 .message_body(stream)?;
             Ok(resp)
         }
@@ -129,9 +129,21 @@ pub async fn take_filebox_by_code(
 
             let file_path = format!("{}/{}", app_state.upload_path, filebox.file_path);
             let file_stream = NamedFile::open_async(file_path).await?;
-            let resp = file_stream
-                .set_content_disposition(ContentDisposition::attachment(file_name))
-                .into_response(&req);
+            let into_resp = file_stream.into_response(&req);
+            let mut resp = HttpResponse::Ok();
+            let cd = ContentDisposition {
+                parameters: vec![DispositionParam::FilenameExt(ExtendedValue {
+                    charset: Charset::Gb2312,
+                    language_tag: None,
+                    value: file_name.into(),
+                })],
+                disposition: DispositionType::Attachment,
+            };
+            let resp = resp
+                .append_header((header::CONTENT_DISPOSITION, cd))
+                .append_header((header::ACCESS_CONTROL_EXPOSE_HEADERS, "Content-Disposition"))
+                .message_body(into_resp.into_body())?;
+
             Ok(resp)
         }
     }

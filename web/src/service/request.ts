@@ -30,18 +30,26 @@ export namespace Filebox {
     return camelcaseKeys(data, { deep: true });
   }
 
-  export async function takeFilebox(code: string, filename: string) {
+  export async function takeFilebox(code: string) {
     const res = await axios.post(
       `${domain}/filebox/${code}`,
       {},
       { responseType: "blob" }
     );
-    fileDownload(res, filename);
+    fileDownload(res);
   }
 
-  function fileDownload(res: any, filename: string) {
+  function fileDownload(res: any) {
     const blob = new Blob([res.data]);
     const elink = document.createElement("a");
+    const filename = decodeURIComponent(
+      // 这里使用了GB2312字符集
+      res.headers["content-disposition"].replace(
+        "attachment; filename*=GB2312''",
+        ""
+      )
+    ).replace(/\"/g, "");
+    elink.href = URL.createObjectURL(blob);
     elink.download = filename;
     elink.style.display = "none";
     elink.href = URL.createObjectURL(blob);

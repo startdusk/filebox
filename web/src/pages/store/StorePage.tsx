@@ -166,7 +166,12 @@ export const StorePage: React.FC<StorePageProps> = () => {
                   />
                 </div>
                 <Button
-                  sx={{ marginTop: "8px", background: "#888", width: "200px" }}
+                  sx={{
+                    marginTop: "8px",
+                    background: "#888",
+                    width: "200px",
+                    zIndex: 998,
+                  }}
                   variant="contained"
                   onClick={() => {
                     handleClick();
@@ -207,7 +212,7 @@ export const StorePage: React.FC<StorePageProps> = () => {
           </div>
         </FormControl>
 
-        <FileboxDialog open={open}>
+        <FileboxDialog sx={{ zIndex: 999 }} open={open}>
           <DialogHeader id="store-dialog" onClose={handleClose}>
             寄件成功
           </DialogHeader>

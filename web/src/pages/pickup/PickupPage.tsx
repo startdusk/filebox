@@ -24,7 +24,6 @@ export const PickupPage: React.FC<PickupPageProps> = () => {
   const [inputFull, setInputFull] = useState(false);
   const [reqestErr, setReqestErr] = useState(false);
   const [filecode, setFilecode] = useState("");
-
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const openDialog = (filecode: string, filename: string) => {
@@ -38,7 +37,7 @@ export const PickupPage: React.FC<PickupPageProps> = () => {
 
   const handlePickup = async () => {
     handleClose();
-    await Filebox.takeFilebox(filecode, text);
+    await Filebox.takeFilebox(filecode);
     setCurrentAttempt("");
     setOpen(false);
   };

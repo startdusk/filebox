@@ -15,7 +15,7 @@ export const DialogHeader: React.FC<PropsType> = ({
   ...other
 }) => {
   return (
-    <DialogTitle sx={{ m: 0, p: 2 }} {...other}>
+    <DialogTitle sx={{ m: 0, p: 2, zIndex: 999 }} {...other}>
       {children}
       {onClose ? (
         <IconButton
