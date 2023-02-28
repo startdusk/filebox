@@ -167,7 +167,7 @@ export const StorePage: React.FC<StorePageProps> = () => {
                 </div>
                 <Button
                   sx={{
-                    marginTop: "8px",
+                    marginTop: "20px",
                     background: "#888",
                     width: "200px",
                     zIndex: 998,
@@ -199,7 +199,7 @@ export const StorePage: React.FC<StorePageProps> = () => {
                   onChange={(e) => setText(e.target.value)}
                 />
                 <Button
-                  sx={{ marginTop: "8px", background: "#888", width: "200px" }}
+                  sx={{ marginTop: "20px", background: "#888", width: "200px" }}
                   variant="contained"
                   onClick={() => {
                     handleClick();
