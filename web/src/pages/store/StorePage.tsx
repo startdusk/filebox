@@ -33,11 +33,14 @@ export const StorePage: React.FC<StorePageProps> = () => {
   const [file, setFile] = useState<File | undefined>(undefined);
   const [storeDay, setStoreDay] = useState(1);
   const [open, setOpen] = useState(false);
+  const [clearFiles, setClearFiles] = useState(false);
 
   const [clickTitle, setClickTitle] = useState("Click to copy");
 
   const handleClose = () => {
     setOpen(false);
+    resetForm();
+    window.location.reload();
   };
   const resetForm = () => {
     setFile(undefined);
@@ -67,7 +70,6 @@ export const StorePage: React.FC<StorePageProps> = () => {
 
     Filebox.addFilebox(filebox).then((res) => {
       openDialog(res.code);
-      resetForm();
     });
   };
 
@@ -127,7 +129,7 @@ export const StorePage: React.FC<StorePageProps> = () => {
                     value={storeDay}
                     onChange={(e) => {
                       if (e.target.value === "") {
-                        setStoreDay(0);
+                        setStoreDay(1);
                       } else if (e.target.value) {
                         let value = parseInt(e.target.value);
                         if (value > 30) {
@@ -156,6 +158,7 @@ export const StorePage: React.FC<StorePageProps> = () => {
               <TabPanel value="1">
                 <div className={styles.dropzone}>
                   <DropzoneArea
+                    clearOnUnmount={clearFiles}
                     filesLimit={1}
                     maxFileSize={MaxFileSize}
                     onChange={(files) => {
