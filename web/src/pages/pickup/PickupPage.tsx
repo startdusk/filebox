@@ -22,10 +22,13 @@ export const PickupPage: React.FC<PickupPageProps> = () => {
   const [shaking, setShaking] = useState(false);
   const [inputMiss, setInputMiss] = useState(false);
   const [inputFull, setInputFull] = useState(false);
-  const [reqestErr, setReqestErr] = useState(false);
+  const [requestErr, setRequestErr] = useState(false);
   const [filecode, setFilecode] = useState("");
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
+
+  const [forbiddenMessage, setForbiddenMessage] = useState("");
+
   const openDialog = (filecode: string, filename: string) => {
     setOpen(true);
     setFilecode(filecode);
@@ -60,14 +63,18 @@ export const PickupPage: React.FC<PickupPageProps> = () => {
         openDialog(currentAttempt, res.name);
       } catch (err) {
         assertIsAxiosError(err);
-        if (err.response?.status === 404) {
-          setShaking(true);
-          setReqestErr(true);
-          setTimeout(() => {
-            setShaking(false);
-            setReqestErr(false);
-          }, 1000);
+        const status = err.response?.status || 200;
+        setShaking(true);
+        setRequestErr(true);
+        if (status === 403) {
+          const data = err.response?.data as any;
+          setForbiddenMessage(data.message);
         }
+        setTimeout(() => {
+          setShaking(false);
+          setRequestErr(false);
+          setForbiddenMessage("");
+        }, 1000);
         return;
       }
 
@@ -105,9 +112,9 @@ export const PickupPage: React.FC<PickupPageProps> = () => {
           </div>
           <Keyboard />
         </KeyContext.Provider>
-        {reqestErr && (
+        {requestErr && (
           <Alerts title="Error" severity="error">
-            口令错误 <strong>还有5次重试机会!</strong>
+            {forbiddenMessage === "" ? "口令错误" : forbiddenMessage}
           </Alerts>
         )}
         {inputMiss && (

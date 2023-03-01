@@ -54,7 +54,10 @@ pub enum Error {
 }
 
 impl Error {
-    fn error_response(&self) -> String {
+    pub fn to_response(&self) -> HttpResponse {
+        self.error_response()
+    }
+    fn error_message(&self) -> String {
         match self {
             Error::IpAllowerError(limit) => {
                 format!("今日文件口令错误已达 {limit} 次, 请明天再访问")
@@ -132,7 +135,7 @@ impl ResponseError for Error {
 
     fn error_response(&self) -> actix_web::HttpResponse<actix_web::body::BoxBody> {
         HttpResponse::build(self.status_code()).json(ErrorResponse {
-            message: self.error_response(),
+            message: self.error_message(),
             code: self.status_code().as_u16(),
             error: self.name(),
         })

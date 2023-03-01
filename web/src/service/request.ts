@@ -26,13 +26,13 @@ export namespace Filebox {
   }
 
   export async function getFilebox(code: string) {
-    const { data } = await axios.get(`${domain}/filebox/${code}`);
+    const { data } = await axios.post(`${domain}/filebox/${code}`);
     return camelcaseKeys(data, { deep: true });
   }
 
   export async function takeFilebox(code: string) {
     const res = await axios.post(
-      `${domain}/filebox/${code}`,
+      `${domain}/filebox/${code}/taken`,
       {},
       { responseType: "blob" }
     );
