@@ -63,9 +63,8 @@ pub async fn ip_upload_limit_of_day_mw(
 }
 
 fn get_ip(req: &ServiceRequest) -> String {
-    let peer_addr_ip = req.peer_addr().unwrap().ip().to_string();
     match req.headers().get("X-REAL-IP") {
         Some(header) => String::from(header.to_str().unwrap()),
-        None => peer_addr_ip,
+        None => req.peer_addr().unwrap().ip().to_string(),
     }
 }

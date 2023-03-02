@@ -35,6 +35,7 @@ services:
       REDIS_CONN_ADDR: 'redis://@redis:6379'
       CODE_LEN: 5
       IP_VISIT_ERROR_LIMIT: 5
+      IP_UPLOAD_LIMIT: 5
       IP_VISIT_ERROR_DURATION_DAY: 1
       ALLOWED_ORIGIN: 'http://127.0.0.1:5173'
       
