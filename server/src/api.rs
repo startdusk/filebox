@@ -217,13 +217,13 @@ pub struct ErrorResponse {
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct IpInfo {
-    pub count: i32,
-    // pub per_day_limit_of_visit: i32,
+    pub visit_error_limit_of_per_day: i32,
+    pub upload_limit_of_per_day: i32,
 }
 
 impl IpInfo {
     pub fn new() -> Self {
-        Self { count: 1 }
+        Self::default()
     }
 }
 

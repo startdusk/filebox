@@ -31,8 +31,11 @@ pub enum Error {
     #[error("No file box found by the given condition")]
     NotFound,
 
-    #[error("Ip allow error")]
-    IpAllowerError(i32),
+    #[error("Ip visit error limit")]
+    IpVisitErrorLimit(i32),
+
+    #[error("Ip upload limit")]
+    IpUploadLimit(i32),
 
     #[error("Unknown error")]
     Unknown,
@@ -59,8 +62,11 @@ impl Error {
     }
     fn error_message(&self) -> String {
         match self {
-            Error::IpAllowerError(limit) => {
+            Error::IpVisitErrorLimit(limit) => {
                 format!("今日文件口令错误已达 {limit} 次, 请明天再访问")
+            }
+            Error::IpUploadLimit(limit) => {
+                format!("今日文件上传已达 {limit} 次, 请明天再上传")
             }
             Error::InvalidCode(msg) => msg.to_string(),
             Error::ValidateArgsError(_) | Error::InputValidateError(_) => {
@@ -88,7 +94,8 @@ impl Error {
             Error::InvalidFileType(_) => "INVALID_FILE_TYPE".to_string(),
             Error::InputValidateError(_) => "INPUT_VALIDATE_ERROR".to_string(),
             Error::NotFound => "NOT_FOUND".to_string(),
-            Error::IpAllowerError(_) => "IP_ALLOWER_ERROR".to_string(),
+            Error::IpVisitErrorLimit(_) => "IP_VISIT_ERROR_LIMIT".to_string(),
+            Error::IpUploadLimit(_) => "IP_UPLOAD_LIMIT".to_string(),
             Error::IOError(_) => "IO_ERROR".to_string(),
             Error::DbError(_) => "DB_ERROR".to_string(),
             Error::Unknown => "UNKNOWN".to_string(),
@@ -119,8 +126,11 @@ impl ResponseError for Error {
             | Error::InvalidCode(_)
             | Error::InvalidFileType(_)
             | Error::InputValidateError(_) => StatusCode::BAD_REQUEST,
+
             Error::NotFound => StatusCode::NOT_FOUND,
-            Error::IpAllowerError(_) => StatusCode::FORBIDDEN,
+
+            Error::IpVisitErrorLimit(_) | Error::IpUploadLimit(_) => StatusCode::FORBIDDEN,
+
             Error::ActixWebError(_)
             | Error::IOError(_)
             | Error::DbError(_)

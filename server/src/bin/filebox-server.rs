@@ -15,7 +15,7 @@ use server::handlers::filebox::add_new_filebox;
 use server::handlers::filebox::get_filebox_by_code;
 use server::handlers::filebox::take_filebox_by_code;
 use server::handlers::general::health_check_handler;
-use server::middlewares::redis_ip_allower_mw;
+use server::middlewares::{ip_upload_limit_of_day_mw, ip_visit_error_limit_of_day_mw};
 use server::scheduler::start_clean_expired_filebox;
 use server::state::{AppState, CacheState};
 use sqlx::postgres::PgPoolOptions;
@@ -69,7 +69,11 @@ async fn main() -> anyhow::Result<()> {
     let ip_visit_error_limit =
         env::var("IP_VISIT_ERROR_LIMIT").expect("IP_VISIT_ERROR_LIMIT is required");
     let ip_visit_error_limit: i32 = ip_visit_error_limit.parse().unwrap_or_else(|_| {
-        panic!("ip_visit_error_limit should be a i32 type but got {ip_visit_error_limit}")
+        panic!("IP_VISIT_ERROR_LIMIT should be a i32 type but got {ip_visit_error_limit}")
+    });
+    let ip_upload_limit = env::var("IP_UPLOAD_LIMIT").expect("IP_UPLOAD_LIMIT is required");
+    let ip_upload_limit: i32 = ip_upload_limit.parse().unwrap_or_else(|_| {
+        panic!("IP_UPLOAD_LIMIT should be a i32 type but got {ip_visit_error_limit}")
     });
     let ip_visit_error_duration_day =
         env::var("IP_VISIT_ERROR_DURATION_DAY").expect("IP_VISIT_ERROR_DURATION_DAY is required");
@@ -81,6 +85,7 @@ async fn main() -> anyhow::Result<()> {
     let cache_state = web::Data::new(CacheState {
         ip_allower: Arc::new(IpAllower::new(
             ip_visit_error_limit,
+            ip_upload_limit,
             ip_visit_error_duration_day,
         )),
         redis_actor: Arc::new(RedisActor::start(redis_conn_addr)),
@@ -115,8 +120,13 @@ async fn main() -> anyhow::Result<()> {
             .route("/health", web::get().to(health_check_handler))
             .service(
                 web::scope("/v1/filebox")
-                    .wrap(from_fn(redis_ip_allower_mw))
-                    .route("", web::post().to(add_new_filebox))
+                    .wrap(from_fn(ip_visit_error_limit_of_day_mw))
+                    .route(
+                        "",
+                        web::post()
+                            .wrap(from_fn(ip_upload_limit_of_day_mw))
+                            .to(add_new_filebox),
+                    )
                     .service(
                         web::resource("/{code}")
                             .route(web::get().to(get_filebox_by_code))

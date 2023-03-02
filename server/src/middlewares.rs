@@ -1,5 +1,8 @@
 use crate::{
-    data::redis::{add_ip, allow_ip},
+    data::redis::{
+        add_ip_upload_limit_count, add_ip_visit_error_limit_count, is_allow_ip_for_upload,
+        is_allow_ip_for_visit,
+    },
     errors,
     state::CacheState,
 };
@@ -11,30 +14,58 @@ use actix_web::{
 
 use actix_web_lab::middleware::Next;
 
-pub async fn redis_ip_allower_mw(
+pub async fn ip_visit_error_limit_of_day_mw(
     cache_state: web::Data<CacheState>,
     req: ServiceRequest,
     next: Next<BoxBody>,
 ) -> Result<ServiceResponse<BoxBody>, Error> {
-    let peer_addr_ip = req.peer_addr().unwrap().ip().to_string();
-    let ip = match req.headers().get("X-REAL-IP") {
-        Some(header) => String::from(header.to_str().unwrap()),
-        None => peer_addr_ip,
-    };
+    let ip = get_ip(&req);
 
     let ip_allower = &cache_state.ip_allower;
     let addr = &cache_state.redis_actor;
-    if !allow_ip(addr, &ip, ip_allower.limit).await? {
+    if !is_allow_ip_for_visit(addr, &ip, ip_allower.visit_error_limit).await? {
         return Ok(ServiceResponse::new(
             req.request().clone(),
-            errors::Error::IpAllowerError(ip_allower.limit).to_response(),
+            errors::Error::IpVisitErrorLimit(ip_allower.visit_error_limit).to_response(),
         ));
     }
 
     let res = next.call(req).await?;
     if res.response().error().is_some() {
-        add_ip(addr, &ip, ip_allower.ttl).await?
+        add_ip_visit_error_limit_count(addr, &ip, ip_allower.ttl).await?
     }
 
     Ok(res)
+}
+
+pub async fn ip_upload_limit_of_day_mw(
+    cache_state: web::Data<CacheState>,
+    req: ServiceRequest,
+    next: Next<BoxBody>,
+) -> Result<ServiceResponse<BoxBody>, Error> {
+    let ip = get_ip(&req);
+
+    let ip_allower = &cache_state.ip_allower;
+    let addr = &cache_state.redis_actor;
+    if !is_allow_ip_for_upload(addr, &ip, ip_allower.upload_limit).await? {
+        return Ok(ServiceResponse::new(
+            req.request().clone(),
+            errors::Error::IpUploadLimit(ip_allower.upload_limit).to_response(),
+        ));
+    }
+
+    let res = next.call(req).await?;
+    if res.response().error().is_some() {
+        add_ip_upload_limit_count(addr, &ip, ip_allower.ttl).await?
+    }
+
+    Ok(res)
+}
+
+fn get_ip(req: &ServiceRequest) -> String {
+    let peer_addr_ip = req.peer_addr().unwrap().ip().to_string();
+    match req.headers().get("X-REAL-IP") {
+        Some(header) => String::from(header.to_str().unwrap()),
+        None => peer_addr_ip,
+    }
 }

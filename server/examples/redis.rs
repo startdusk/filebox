@@ -8,7 +8,7 @@ fn main() {
 
     let ip = "127.0.0.1";
     let mut ip_info = IpInfo::new();
-    ip_info.count += 1;
+    ip_info.visit_error_limit_of_per_day += 1;
     let value = serde_json::to_string(&ip_info).unwrap();
     let res: bool = redis::cmd("SETEX")
         .arg(ip)

@@ -5,36 +5,89 @@ use chrono::{Duration, Local};
 use crate::{api::IpInfo, errors};
 
 pub struct IpAllower {
-    pub limit: i32,
+    pub visit_error_limit: i32,
+    pub upload_limit: i32,
     pub ttl: i64,
 }
 
 impl IpAllower {
-    pub fn new(limit: i32, ttl: i64) -> Self {
-        Self { limit, ttl }
+    pub fn new(visit_error_limit: i32, upload_limit: i32, ttl: i64) -> Self {
+        Self {
+            visit_error_limit,
+            upload_limit,
+            ttl,
+        }
     }
 }
 
-pub async fn allow_ip(
+pub async fn is_allow_ip_for_visit(
     addr: &Addr<RedisActor>,
     ip: &str,
-    limit: i32,
+    visit_error_limit: i32,
 ) -> Result<bool, errors::Error> {
     let (ip_info, get_it) = get(addr, ip).await?;
     if !get_it {
         return Ok(true);
     }
 
-    if ip_info.count >= limit {
+    if ip_info.visit_error_limit_of_per_day >= visit_error_limit {
         return Ok(false);
     }
     Ok(true)
 }
 
-pub async fn add_ip(addr: &Addr<RedisActor>, ip: &str, ttl: i64) -> Result<(), errors::Error> {
+pub async fn add_ip_visit_error_limit_count(
+    addr: &Addr<RedisActor>,
+    ip: &str,
+    ttl: i64,
+) -> Result<(), errors::Error> {
     let (mut ip_info, get_it) = get(addr, ip).await?;
     if get_it {
-        ip_info.count += 1;
+        ip_info.visit_error_limit_of_per_day += 1;
+    }
+
+    // SAFTEY: we ensure the ip_info implementation of Serialize
+    let value = serde_json::to_string(&ip_info).unwrap();
+    let ttl = get_ttl(ttl);
+    let cmd = Command(resp_array!["SETEX", ip, ttl.to_string(), value]);
+    if let RespValue::Error(msg) = addr
+        .send(cmd)
+        .await
+        .map_err(Into::into)
+        .map_err(errors::Error::RedisError)?
+        .map_err(Into::into)
+        .map_err(errors::Error::RedisError)?
+    {
+        return Err(errors::Error::RedisSendCommandError(msg));
+    };
+
+    Ok(())
+}
+
+pub async fn is_allow_ip_for_upload(
+    addr: &Addr<RedisActor>,
+    ip: &str,
+    upload_limit: i32,
+) -> Result<bool, errors::Error> {
+    let (ip_info, get_it) = get(addr, ip).await?;
+    if !get_it {
+        return Ok(true);
+    }
+
+    if ip_info.upload_limit_of_per_day >= upload_limit {
+        return Ok(false);
+    }
+    Ok(true)
+}
+
+pub async fn add_ip_upload_limit_count(
+    addr: &Addr<RedisActor>,
+    ip: &str,
+    ttl: i64,
+) -> Result<(), errors::Error> {
+    let (mut ip_info, get_it) = get(addr, ip).await?;
+    if get_it {
+        ip_info.upload_limit_of_per_day += 1;
     }
 
     // SAFTEY: we ensure the ip_info implementation of Serialize
