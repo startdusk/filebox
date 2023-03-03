@@ -24,7 +24,9 @@ test: fmt
 
 .PHONY: fmt
 fmt:
-	@cargo fmt && cargo fmt -- --check && cargo clippy --all-targets --all-features --tests --benches -- -D warnings
+	@cargo fmt 
+	@cargo fmt -- --check
+	@cargo clippy --all-targets --all-features --tests --benches -- -D warnings
 
 .PHONY: run
 run:

@@ -1,4 +1,4 @@
-version: '3'
+version: '3.7'
 services: 
   db:
     image: postgres:latest
@@ -32,10 +32,9 @@ services:
       HTTP_SERVER_ADDR: 'localhost:8888'
       UPLOAD_FILE_PATH: 'uploaded'
       GRACEFUL_SHUTDOWN_TIMEOUT_SEC: 5
-      REDIS_CONN_ADDR: 'redis://@redis:6379'
+      REDIS_CONN_ADDR: 'redis://redis'
       CODE_LEN: 5
       IP_VISIT_ERROR_LIMIT: 5
       IP_UPLOAD_LIMIT: 5
       IP_VISIT_ERROR_DURATION_DAY: 1
       ALLOWED_ORIGIN: 'http://127.0.0.1:5173'
-      

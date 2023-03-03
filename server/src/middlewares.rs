@@ -56,7 +56,7 @@ pub async fn ip_upload_limit_of_day_mw(
 
     add_ip_upload_limit_count(addr, &ip, ip_allower.ttl).await?;
 
-    Ok(next.call(req).await?)
+    next.call(req).await
 }
 
 fn get_ip(req: &ServiceRequest) -> String {
