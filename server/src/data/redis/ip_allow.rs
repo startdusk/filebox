@@ -41,10 +41,8 @@ pub async fn add_ip_visit_error_limit_count(
     ip: &str,
     ttl: i64,
 ) -> Result<(), errors::Error> {
-    let (mut ip_info, get_it) = get(addr, ip).await?;
-    if get_it {
-        ip_info.visit_error_limit_of_per_day += 1;
-    }
+    let (mut ip_info, _) = get(addr, ip).await?;
+    ip_info.visit_error_limit_of_per_day += 1;
 
     // SAFTEY: we ensure the ip_info implementation of Serialize
     let value = serde_json::to_string(&ip_info).unwrap();
@@ -85,10 +83,8 @@ pub async fn add_ip_upload_limit_count(
     ip: &str,
     ttl: i64,
 ) -> Result<(), errors::Error> {
-    let (mut ip_info, get_it) = get(addr, ip).await?;
-    if get_it {
-        ip_info.upload_limit_of_per_day += 1;
-    }
+    let (mut ip_info, _) = get(addr, ip).await?;
+    ip_info.upload_limit_of_per_day += 1;
 
     // SAFTEY: we ensure the ip_info implementation of Serialize
     let value = serde_json::to_string(&ip_info).unwrap();

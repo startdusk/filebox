@@ -18,3 +18,8 @@
   margin-top: 100px;
   margin-bottom: 119px;
 }
+
+.alert {
+  z-index: 999;
+  margin-top: -450px;
+}

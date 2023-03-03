@@ -124,8 +124,8 @@ async fn main() -> anyhow::Result<()> {
                     .route(
                         "",
                         web::post()
-                            .wrap(from_fn(ip_upload_limit_of_day_mw))
-                            .to(add_new_filebox),
+                            .to(add_new_filebox)
+                            .wrap(from_fn(ip_upload_limit_of_day_mw)),
                     )
                     .service(
                         web::resource("/{code}")

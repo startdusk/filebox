@@ -15,14 +15,16 @@ import {
   Typography,
   DialogActions,
   IconButton,
+  Alert,
 } from "@mui/material";
 
 import { Filebox } from "../../service/request";
 import { DropzoneArea } from "material-ui-dropzone";
-import { MaxFileSize } from "../../filebox";
+import { MaxFileSize, assertIsAxiosError } from "../../filebox";
 import { DialogHeader, FileboxDialog } from "../../components/dialog";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
 import Tooltip from "@mui/material/Tooltip";
+import { Alerts } from "../../components/alerts";
 
 interface StorePageProps {}
 
@@ -33,7 +35,6 @@ export const StorePage: React.FC<StorePageProps> = () => {
   const [file, setFile] = useState<File | undefined>(undefined);
   const [storeDay, setStoreDay] = useState(1);
   const [open, setOpen] = useState(false);
-  const [clearFiles, setClearFiles] = useState(false);
 
   const [clickTitle, setClickTitle] = useState("Click to copy");
 
@@ -53,8 +54,29 @@ export const StorePage: React.FC<StorePageProps> = () => {
   };
 
   const [filecode, setFilecode] = useState("");
-
+  const [inputErrMsg, setInputErrMsg] = useState("");
   const handleClick = () => {
+    if (title === "") {
+      setInputErrMsg("请输入标题");
+      setTimeout(() => {
+        setInputErrMsg("");
+      }, 1000);
+      return;
+    }
+    if (value === "1" && !file) {
+      setInputErrMsg("请上传文件");
+      setTimeout(() => {
+        setInputErrMsg("");
+      }, 1000);
+      return;
+    }
+    if (value === "2" && text === "") {
+      setInputErrMsg("请输入文本");
+      setTimeout(() => {
+        setInputErrMsg("");
+      }, 1000);
+      return;
+    }
     const filebox: Filebox.FileboxData = {
       name: title,
       duration_day: storeDay,
@@ -68,9 +90,21 @@ export const StorePage: React.FC<StorePageProps> = () => {
       setFilecode(filecode);
     };
 
-    Filebox.addFilebox(filebox).then((res) => {
-      openDialog(res.code);
-    });
+    Filebox.addFilebox(filebox)
+      .then((res) => {
+        openDialog(res.code);
+      })
+      .catch((err) => {
+        assertIsAxiosError(err);
+        const status = err.response?.status || 200;
+        if (status === 403) {
+          const data = err.response?.data as any;
+          setInputErrMsg(data.message);
+          setTimeout(() => {
+            setInputErrMsg("");
+          }, 1000);
+        }
+      });
   };
 
   return (
@@ -158,7 +192,6 @@ export const StorePage: React.FC<StorePageProps> = () => {
               <TabPanel value="1">
                 <div className={styles.dropzone}>
                   <DropzoneArea
-                    clearOnUnmount={clearFiles}
                     filesLimit={1}
                     maxFileSize={MaxFileSize}
                     onChange={(files) => {
@@ -173,7 +206,6 @@ export const StorePage: React.FC<StorePageProps> = () => {
                     marginTop: "20px",
                     background: "#888",
                     width: "200px",
-                    zIndex: 998,
                   }}
                   variant="contained"
                   onClick={() => {
@@ -215,6 +247,13 @@ export const StorePage: React.FC<StorePageProps> = () => {
           </div>
         </FormControl>
 
+        <div className={styles.alert}>
+          {inputErrMsg && (
+            <Alerts title="Error" severity="error">
+              {inputErrMsg}
+            </Alerts>
+          )}
+        </div>
         <FileboxDialog sx={{ zIndex: 999 }} open={open}>
           <DialogHeader id="store-dialog" onClose={handleClose}>
             寄件成功
