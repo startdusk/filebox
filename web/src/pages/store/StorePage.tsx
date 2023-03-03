@@ -15,7 +15,6 @@ import {
   Typography,
   DialogActions,
   IconButton,
-  Alert,
 } from "@mui/material";
 
 import { Filebox } from "../../service/request";
@@ -128,6 +127,7 @@ export const StorePage: React.FC<StorePageProps> = () => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 autoFocus
+                inputProps={{ maxLength: 30 }}
               />
             </Stack>
             <TabContext value={value}>
@@ -232,6 +232,7 @@ export const StorePage: React.FC<StorePageProps> = () => {
                   }}
                   value={text}
                   onChange={(e) => setText(e.target.value)}
+                  inputProps={{ maxLength: 2000 }}
                 />
                 <Button
                   sx={{ marginTop: "20px", background: "#888", width: "200px" }}
