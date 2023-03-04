@@ -228,3 +228,7 @@ impl IpInfo {
 }
 
 pub type RedisActorAddr = Addr<RedisActor>;
+
+pub const IP_UPLOAD_LIMIT_HEADER: &str = "X-IP-UPLOAD-LIMIT";
+pub const IP_VISIT_ERROR_LIMIT_HEADER: &str = "X-IP-VISIT-ERROR-LIMIT";
+pub const DATE_FORMAT: &str = "%Y-%m-%d";

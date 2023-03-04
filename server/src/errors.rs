@@ -1,9 +1,10 @@
 use std::{io, string};
 
 use actix_web::{http::StatusCode, HttpResponse, ResponseError};
+use chrono::Local;
 use validator::ValidationErrors;
 
-use crate::api::ErrorResponse;
+use crate::api::{ErrorResponse, DATE_FORMAT, IP_UPLOAD_LIMIT_HEADER, IP_VISIT_ERROR_LIMIT_HEADER};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -144,7 +145,19 @@ impl ResponseError for Error {
     }
 
     fn error_response(&self) -> actix_web::HttpResponse<actix_web::body::BoxBody> {
-        HttpResponse::build(self.status_code()).json(ErrorResponse {
+        let mut builder = HttpResponse::build(self.status_code());
+        let now = Local::now().format(DATE_FORMAT);
+        let time_format_str: &str = &now.to_string();
+        let builder = match self {
+            Error::IpUploadLimit(_) => {
+                builder.append_header((IP_UPLOAD_LIMIT_HEADER, time_format_str))
+            }
+            Error::IpVisitErrorLimit(_) => {
+                builder.append_header((IP_VISIT_ERROR_LIMIT_HEADER, time_format_str))
+            }
+            _ => &mut builder,
+        };
+        builder.json(ErrorResponse {
             message: self.error_message(),
             code: self.status_code().as_u16(),
             error: self.name(),
