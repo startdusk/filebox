@@ -1,15 +1,18 @@
 use std::cell::RefCell;
 use std::env;
 use std::io::Write;
+use std::str::FromStr;
 use std::sync::Arc;
 
 use actix_cors::Cors;
+use actix_http::header::HeaderName;
 use actix_redis::RedisActor;
 use actix_web::middleware;
 use actix_web::middleware::Logger;
 use actix_web::{http, web, App, HttpServer};
 use actix_web_lab::middleware::from_fn;
 use chrono::Local;
+use server::api::{IP_UPLOAD_LIMIT_HEADER, IP_VISIT_ERROR_LIMIT_HEADER};
 use server::data::redis::IpAllower;
 use server::handlers::filebox::add_new_filebox;
 use server::handlers::filebox::get_filebox_by_code;
@@ -103,10 +106,15 @@ async fn main() -> anyhow::Result<()> {
                 origin.as_bytes().starts_with(b"http://localhost")
             })
             .allowed_methods(vec!["GET", "POST"])
+            // 允许后端自定义响应 HTTP Response header 给前端
+            .expose_headers(vec![IP_UPLOAD_LIMIT_HEADER, IP_VISIT_ERROR_LIMIT_HEADER])
+            // 允许前端跨域传过来的 HTTP Request header
             .allowed_headers(vec![
                 http::header::AUTHORIZATION,
                 http::header::ACCEPT,
                 http::header::CONTENT_TYPE,
+                HeaderName::from_str(IP_UPLOAD_LIMIT_HEADER).unwrap(),
+                HeaderName::from_str(IP_VISIT_ERROR_LIMIT_HEADER).unwrap(),
             ])
             .supports_credentials()
             .max_age(3600);

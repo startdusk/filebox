@@ -24,6 +24,7 @@ import { DialogHeader, FileboxDialog } from "../../components/dialog";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
 import Tooltip from "@mui/material/Tooltip";
 import { Alerts } from "../../components/alerts";
+import { AxiosResponseHeaders } from "axios";
 
 interface StorePageProps {}
 
@@ -98,6 +99,8 @@ export const StorePage: React.FC<StorePageProps> = () => {
         const status = err.response?.status || 200;
         if (status === 403) {
           const data = err.response?.data as any;
+          const headers = err.response?.headers as AxiosResponseHeaders;
+          Filebox.setIpUploadLimitFlag(headers);
           setInputErrMsg(data.message);
           setTimeout(() => {
             setInputErrMsg("");

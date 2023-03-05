@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 import { Alerts } from "../../components/alerts";
 import { DialogHeader, FileboxDialog } from "../../components/dialog";
+import { AxiosResponseHeaders } from "axios";
 
 interface PickupPageProps {}
 
@@ -68,6 +69,8 @@ export const PickupPage: React.FC<PickupPageProps> = () => {
         setRequestErr(true);
         if (status === 403) {
           const data = err.response?.data as any;
+          const headers = err.response?.headers as AxiosResponseHeaders;
+          Filebox.setIpVisitErrorLimitFlag(headers);
           setForbiddenMessage(data.message);
         }
         setTimeout(() => {
