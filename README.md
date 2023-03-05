@@ -8,6 +8,9 @@
 取件
 ![pickuppage](./resources/images/pickuppage.png)
 
+寄件
+![storepage](./resources/images/storepage.png)
+
 ## 为什么想做这个东西？
 
 - 闹着玩
