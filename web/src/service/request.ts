@@ -2,7 +2,7 @@ import axios, { AxiosResponseHeaders } from "axios";
 import camelcaseKeys from "camelcase-keys";
 
 export namespace Filebox {
-  const domain = "http://localhost:8888/v1";
+  const domain = import.meta.env.VITE_APP_DOMAIN_URL;
 
   type FileboxHeader = "X-IP-UPLOAD-LIMIT" | "X-IP-VISIT-ERROR-LIMIT";
 
