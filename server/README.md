@@ -1,6 +1,4 @@
-# TODO: 待添加文档
-
-## 使用方式
+## 本地开发
 
 ### 外部依赖
 - PostgresSQL
@@ -12,16 +10,9 @@
 $ mv .env.example .env
 ```
 
+运行
 ```bash
 $ make run
 ```
 
-## 遇到的问题集合
-
-### error: linking with `cc` failed: exit status: 1
-算是个官方的BUG吧
-解决方式
-```bash
-rustup toolchain uninstall stable && rustup toolchain install stable
-```
 
