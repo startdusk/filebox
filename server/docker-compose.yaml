@@ -32,12 +32,14 @@ services:
       - filebox-net
     ports:
       - "8888:8888"
+    expose:
+      - 8888
     environment:
       DATABASE_URL: 'postgres://postgres:password@db/filebox'
-      HTTP_SERVER_ADDR: 'localhost:8888'
+      HTTP_SERVER_ADDR: '0.0.0.0:8888'
       UPLOAD_FILE_PATH: 'uploaded'
       GRACEFUL_SHUTDOWN_TIMEOUT_SEC: 5
-      REDIS_CONN_ADDR: 'redis:6379'
+      REDIS_CONN_ADDR: 'redis:6379' # actix-redis does not accept Redis URL starting with redis:// for some reason. https://stackoverflow.com/questions/73780056/dns-resolver-failed-to-resolve-host-redis-failed-to-lookup-address-informati
       CODE_LEN: 5
       IP_VISIT_ERROR_LIMIT: 5
       IP_UPLOAD_LIMIT: 5
