@@ -10,21 +10,26 @@ services:
       POSTGRES_PASSWORD: password
       TZ: 'GMT+8'
       PGTZ: 'GMT+8'
+    networks:
+      - filebox-net
+
   redis:
-    image: redis/redis-stack:latest
+    image: redis:latest
     restart: always
-    entrypoint: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
     ports:
       - '6379:6379'
-      
+    networks:
+      - filebox-net
+
   filebox-server:
     build: .
     depends_on:
-      - db
-      - redis
-    links:
-      - db:db
-      - redis:redis
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
+    networks:
+      - filebox-net
     ports:
       - "8888:8888"
     environment:
@@ -32,9 +37,12 @@ services:
       HTTP_SERVER_ADDR: 'localhost:8888'
       UPLOAD_FILE_PATH: 'uploaded'
       GRACEFUL_SHUTDOWN_TIMEOUT_SEC: 5
-      REDIS_CONN_ADDR: 'redis://redis'
+      REDIS_CONN_ADDR: 'redis:6379'
       CODE_LEN: 5
       IP_VISIT_ERROR_LIMIT: 5
       IP_UPLOAD_LIMIT: 5
       IP_VISIT_ERROR_DURATION_DAY: 1
       ALLOWED_ORIGIN: 'http://127.0.0.1:5173'
+
+networks:
+  filebox-net:
