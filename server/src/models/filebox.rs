@@ -37,17 +37,12 @@ impl Filebox {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type, Default)]
 #[sqlx(type_name = "file_type", rename_all = "lowercase")]
 pub enum FileType {
+    #[default]
     Text,
     File,
-}
-
-impl Default for FileType {
-    fn default() -> Self {
-        FileType::Text
-    }
 }
 
 impl From<FileType> for String {

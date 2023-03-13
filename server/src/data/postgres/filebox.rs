@@ -24,7 +24,7 @@ pub async fn delete_expired_filebox_db(pool: &PgPool) -> Result<Vec<Filebox>, Er
 
     let filebox_vec: Vec<Filebox> = sqlx::query_as(
         r#"
-		DELETE FROM filebox WHERE expired_at < $1 OR used_at IS NOT NULL RETURNING *
+		DELETE FROM filebox WHERE expired_at <= $1 OR used_at IS NOT NULL RETURNING *
 	"#,
     )
     .bind(now)
