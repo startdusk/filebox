@@ -10,9 +10,9 @@
 $ mv .env.example .env
 ```
 
-运行
+运行, 推荐使用 `Docker`
 ```bash
-$ make run
+$ make up-dev
 ```
 
 
