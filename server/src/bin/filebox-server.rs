@@ -5,6 +5,9 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use actix_cors::Cors;
+use actix_extensible_rate_limit::backend::memory::InMemoryBackend;
+use actix_extensible_rate_limit::backend::SimpleInputFunctionBuilder;
+use actix_extensible_rate_limit::RateLimiter;
 use actix_http::header::HeaderName;
 use actix_redis::RedisActor;
 use actix_web::middleware;
@@ -119,10 +122,20 @@ async fn main() -> anyhow::Result<()> {
             .supports_credentials()
             .max_age(3600);
 
+        // A backend is responsible for storing rate limit data, and choosing whether to allow/deny requests
+        let backend = InMemoryBackend::builder().build();
+
+        // Assign a limit of 5 requests per minute per client ip address
+        let input = SimpleInputFunctionBuilder::new(std::time::Duration::from_secs(60), 5)
+            .real_ip_key()
+            .build();
+
+        let limit_mw = RateLimiter::builder(backend, input).add_headers().build();
         App::new()
             .app_data(shared_data.clone())
             .app_data(cache_state.clone())
             .wrap(middleware::DefaultHeaders::new().add(("Filebox-Version", "0.1")))
+            .wrap(limit_mw)
             .wrap(cors)
             .wrap(Logger::default())
             .route("/health", web::get().to(health_check_handler))
