@@ -10,7 +10,6 @@ use actix_extensible_rate_limit::backend::SimpleInputFunctionBuilder;
 use actix_extensible_rate_limit::RateLimiter;
 use actix_http::header::HeaderName;
 use actix_redis::RedisActor;
-use actix_web::middleware;
 use actix_web::middleware::Logger;
 use actix_web::{http, web, App, HttpServer};
 use actix_web_lab::middleware::from_fn;
@@ -126,7 +125,7 @@ async fn main() -> anyhow::Result<()> {
         let backend = InMemoryBackend::builder().build();
 
         // Assign a limit of 5 requests per minute per client ip address
-        let input = SimpleInputFunctionBuilder::new(std::time::Duration::from_secs(60), 5)
+        let input = SimpleInputFunctionBuilder::new(std::time::Duration::from_secs(1), 60)
             .real_ip_key()
             .build();
 
@@ -134,7 +133,6 @@ async fn main() -> anyhow::Result<()> {
         App::new()
             .app_data(shared_data.clone())
             .app_data(cache_state.clone())
-            .wrap(middleware::DefaultHeaders::new().add(("Filebox-Version", "0.1")))
             .wrap(limit_mw)
             .wrap(cors)
             .wrap(Logger::default())

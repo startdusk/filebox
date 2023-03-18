@@ -10,9 +10,6 @@ COPY . .
 
 RUN yarn build
 
-## EXPOSE [Port you mentioned in the vite.config file]
-EXPOSE 5173
-
 FROM nginx
 
 COPY --from=builder /app/dist/ /usr/share/nginx/html
