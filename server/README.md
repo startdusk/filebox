@@ -5,7 +5,7 @@
 - Redis
 
 ### 如何运行
-将 ```env.example``` 修改为 ```.env```, 然后修改为自己对应的变量
+将 ```env.example``` 修改为 ```.env```
 ```bash
 $ mv .env.example .env
 ```
@@ -14,5 +14,3 @@ $ mv .env.example .env
 ```bash
 $ make up-dev
 ```
-
-
